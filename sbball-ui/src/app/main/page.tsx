@@ -12,7 +12,7 @@ import {
 import { useEffect, useState } from "react";
 import Layout from "../../../components/Layout";
 import axios from "axios";
-import { apiUrl } from "../apiUrl";
+import { apiUrl } from "../../../utils/apiUrl.tsx";
 
 const SortableTable = ({ data, defaultSortColumn, defaultSortOrder }: any) => {
   const [sortBy, setSortBy] = useState(defaultSortColumn);

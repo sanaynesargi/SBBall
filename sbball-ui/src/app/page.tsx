@@ -36,7 +36,7 @@ import {
 import { useEffect, useReducer, useState } from "react";
 import Layout from "../../components/Layout";
 import axios from "axios";
-import { apiUrl } from "./apiUrl";
+import { apiUrl } from "../../utils/apiUrl.tsx";
 
 interface PlayerDetails {
   position: string;

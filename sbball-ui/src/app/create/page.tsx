@@ -32,7 +32,7 @@ import { useEffect, useReducer, useState } from "react";
 import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import axios from "axios";
 import { query } from "express";
-import { apiUrl } from "../apiUrl";
+import { apiUrl } from "../../../utils/apiUrl.tsx";
 
 interface PlayerDetails {
   id?: string;
