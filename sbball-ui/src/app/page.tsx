@@ -716,6 +716,41 @@ const Home = () => {
     setPlayers(JSON.parse(pulledState));
     setTeam1(JSON.parse(pulledT1));
     setTeam2(JSON.parse(pulledT2));
+
+    const findPlayerByName = (arr: any[], name: string) => {
+      for (const elem of arr) {
+        if (name == elem.name) {
+          return elem;
+        }
+      }
+
+      return -1;
+    };
+
+    let team1 = JSON.parse(pulledT1);
+    let team2 = JSON.parse(pulledT2);
+
+    let p = JSON.parse(pulledState);
+
+    let s1 = [0, 0];
+    let s2 = [0, 0];
+
+    for (const name of team1) {
+      const playerObj = findPlayerByName(p, name);
+
+      s1[0] += playerObj.twos * 1 + playerObj.threes * 2;
+      s1[1] += playerObj.twos * 2 + playerObj.threes * 3;
+    }
+
+    for (const name of team2) {
+      const playerObj = findPlayerByName(p, name);
+
+      s2[0] += playerObj.twos * 1 + playerObj.threes * 2;
+      s2[1] += playerObj.twos * 2 + playerObj.threes * 3;
+    }
+
+    setScore1(s1);
+    setScore2(s2);
   }, []);
 
   const [inc, setInc] = useState(1);
@@ -806,16 +841,31 @@ const Home = () => {
       </Button>
       <VStack h="max(100vh, 100%)">
         {players.map((player: PlayerDetails, index: number) => {
-          return (
-            <Player
-              key={index}
-              {...player}
-              updatePlayers={setPlayers}
-              index={index}
-              players={players}
-              inc={inc}
-            />
-          );
+          if (!player.setScore1) {
+            return (
+              <Player
+                key={index}
+                {...player}
+                updatePlayers={setPlayers}
+                index={index}
+                players={players}
+                inc={inc}
+                setScore1={setScore1}
+                setScore2={setScore2}
+              />
+            );
+          } else {
+            return (
+              <Player
+                key={index}
+                {...player}
+                updatePlayers={setPlayers}
+                index={index}
+                players={players}
+                inc={inc}
+              />
+            );
+          }
         })}
       </VStack>
     </Layout>
