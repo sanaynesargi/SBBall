@@ -188,7 +188,7 @@ app.post("/api/endGame", (req, res) => {
 
     // add matchup data
     const team1Str = team1.join(";");
-    const team2Str = team1.join(";");
+    const team2Str = team2.join(";");
     const playerCount = team1.length;
     const winner = req.body.winner;
     const date = getTodayDate();
@@ -264,7 +264,10 @@ app.get("/api/getPlayerAverages", (req, res) => {
     return res.send({ error: "Invalid Request" });
   }
 
-  const query = `SELECT playerName, AVG((twos * 2) + (threes * 3)) AS pts, AVG(offReb + defReb) AS reb, ast, blk, stl, tov FROM stats INNER JOIN games ON gameId=games.id WHERE playerCount = ? GROUP BY playerName;`;
+  const query = `SELECT playerName, AVG((twos * 2) + (threes * 3)) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
+   ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, 
+   (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp FROM stats INNER JOIN games 
+   ON gameId=games.id WHERE playerCount = ? GROUP BY playerName;`;
 
   db.all(query, [req.query.playerCount], (err, rows: any) => {
     if (err) {
@@ -281,6 +284,8 @@ app.get("/api/getPlayerAverages", (req, res) => {
           stl: row.stl,
           blk: row.blk,
           tov: row.tov,
+          fg: row.fg * 100,
+          tp: row.tp ? row.tp * 100 : 0,
         });
       }
 
