@@ -9,6 +9,7 @@ import {
   useTab,
   useToast,
   VStack,
+  Button,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import Layout from "../../../components/Layout";
@@ -19,12 +20,17 @@ const SortableTable = ({
   data,
   defaultSortColumn,
   defaultSortColumn2,
+  defaultSortColumn3,
   defaultSortOrder,
 }: any) => {
   const [sortBy, setSortBy] = useState(defaultSortColumn);
   const [sortOrder, setSortOrder] = useState(defaultSortOrder);
+
   const [sortBy2, setSortBy2] = useState(defaultSortColumn2);
   const [sortOrder2, setSortOrder2] = useState(defaultSortOrder);
+
+  const [sortBy3, setSortBy3] = useState(defaultSortColumn3);
+  const [sortOrder3, setSortOrder3] = useState(defaultSortOrder);
 
   const handleSort = (column: any) => {
     if (sortBy === column) {
@@ -44,6 +50,15 @@ const SortableTable = ({
     }
   };
 
+  const handleSort3 = (column: any) => {
+    if (sortBy3 === column) {
+      setSortOrder3(sortOrder3 === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy3(column);
+      setSortOrder3("asc");
+    }
+  };
+
   useEffect(() => {
     setSortBy(defaultSortColumn);
     setSortOrder(defaultSortOrder);
@@ -53,6 +68,11 @@ const SortableTable = ({
     setSortBy2(defaultSortColumn2);
     setSortOrder2(defaultSortOrder);
   }, [defaultSortColumn2, defaultSortOrder]);
+
+  useEffect(() => {
+    setSortBy3(defaultSortColumn3);
+    setSortOrder3(defaultSortOrder);
+  }, [defaultSortColumn3, defaultSortOrder]);
 
   const sortedData = data.slice().sort((a: any, b: any) => {
     if (sortBy) {
@@ -73,6 +93,18 @@ const SortableTable = ({
       }
       if (a[sortBy2] > b[sortBy2]) {
         return sortOrder2 === "asc" ? 1 : -1;
+      }
+    }
+    return 0;
+  });
+
+  const sortedData3 = data.slice().sort((a: any, b: any) => {
+    if (sortBy) {
+      if (a[sortBy3] < b[sortBy3]) {
+        return sortOrder3 === "asc" ? -1 : 1;
+      }
+      if (a[sortBy3] > b[sortBy3]) {
+        return sortOrder3 === "asc" ? 1 : -1;
       }
     }
     return 0;
@@ -121,6 +153,39 @@ const SortableTable = ({
       >
         <Thead>
           <Tr>
+            <Th onClick={() => handleSort3("player")}>Player</Th>
+            <Th onClick={() => handleSort3("tpfgA")}>FGM</Th>
+            <Th onClick={() => handleSort3("fgM")}>FGA</Th>
+            <Th onClick={() => handleSort3("ttpfgA")}>2PM</Th>
+            <Th onClick={() => handleSort3("tpfgM")}>2PA</Th>
+            <Th onClick={() => handleSort3("fgA")}>3PM</Th>
+            <Th onClick={() => handleSort3("ttpfgM")}>3PA</Th>
+          </Tr>
+        </Thead>
+        <Tbody>
+          {sortedData.map((row: any, index: number) => (
+            <Tr key={index}>
+              <Td>{row.player}</Td>
+              <Td>{row.fgM.toFixed(1)}</Td>
+              <Td>{row.fgA.toFixed(1)}</Td>
+              <Td>{row.tpfgM.toFixed(1)}</Td>
+              <Td>{row.tpfgA.toFixed(1)}</Td>
+              <Td>{row.ttpfgM.toFixed(1)}</Td>
+              <Td>{row.ttpfgA.toFixed(1)}</Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+      <Table
+        variant="striped"
+        size="sm"
+        w="410px"
+        h="50vh"
+        colorScheme="blue"
+        overflowX="scroll"
+      >
+        <Thead>
+          <Tr>
             <Th onClick={() => handleSort2("player")}>Player</Th>
             <Th onClick={() => handleSort2("fg")}>FG%</Th>
             <Th onClick={() => handleSort2("tp")}>3P%</Th>
@@ -131,8 +196,8 @@ const SortableTable = ({
           {sortedData2.map((row: any, index: number) => (
             <Tr key={index}>
               <Td>{row.player}</Td>
-              <Td>{row.fg.toFixed(3)}</Td>
-              <Td>{row.tp.toFixed(3)}</Td>
+              <Td>{row.fg.toFixed(2)}</Td>
+              <Td>{row.tp.toFixed(2)}</Td>
               <Td>{row.tov.toFixed(1)}</Td>
             </Tr>
           ))}
@@ -144,13 +209,13 @@ const SortableTable = ({
 
 const Home = () => {
   const [tableData, setTableData] = useState([]);
-  const [playerCount, setPlayerCount] = useState(2);
+  const [mode, setMode] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
     const fetchPlayerData = async () => {
       const playerDataReq = await axios.get(
-        `http://${apiUrl}/api/getPlayerAverages?playerCount=${playerCount}`
+        `http://${apiUrl}/api/getPlayerAverages?mode=${mode ? "4v4" : "2v2"}`
       );
 
       const error = playerDataReq.data.error;
@@ -170,10 +235,18 @@ const Home = () => {
     };
 
     fetchPlayerData();
-  }, [playerCount]);
+  }, [mode]);
 
   return (
     <Layout>
+      <Button
+        colorScheme="blue"
+        onClick={() => {
+          setMode(!mode);
+        }}
+      >
+        Game: {mode ? "Playoffs" : "Regular"}
+      </Button>
       <SortableTable
         data={tableData}
         defaultSortColumn="pts"

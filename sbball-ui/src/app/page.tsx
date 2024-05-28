@@ -626,6 +626,7 @@ const Home = () => {
   let [score1, setScore1] = useState<number[]>([0, 0]);
   let [score2, setScore2] = useState<number[]>([0, 0]);
   const toast = useToast();
+  const [playoffs, setPlayoffs] = useState(false);
 
   const createPlayers = async () => {
     const playersReq = await axios.get(`http://${apiUrl}/api/getPlayers`);
@@ -755,8 +756,130 @@ const Home = () => {
 
   const [inc, setInc] = useState(1);
 
+  const PhonePlayerView = () => {
+    return (
+      <>
+        {players.map((player: PlayerDetails, index: number) => {
+          if (!player.setScore1) {
+            return (
+              <Player
+                key={index}
+                {...player}
+                updatePlayers={setPlayers}
+                index={index}
+                players={players}
+                inc={inc}
+                setScore1={setScore1}
+                setScore2={setScore2}
+              />
+            );
+          } else {
+            return (
+              <Player
+                key={index}
+                {...player}
+                updatePlayers={setPlayers}
+                index={index}
+                players={players}
+                inc={inc}
+              />
+            );
+          }
+        })}
+      </>
+    );
+  };
+
+  const MaxPlayerView = () => {
+    return (
+      <HStack spacing={15}>
+        <VStack>
+          {players.map((player: PlayerDetails, index: number) => {
+            if (!team1.includes(player.name)) {
+              return;
+            }
+
+            if (!player.setScore1) {
+              return (
+                <Player
+                  key={index}
+                  {...player}
+                  updatePlayers={setPlayers}
+                  index={index}
+                  players={players}
+                  inc={inc}
+                  setScore1={setScore1}
+                  setScore2={setScore2}
+                />
+              );
+            } else {
+              return (
+                <Player
+                  key={index}
+                  {...player}
+                  updatePlayers={setPlayers}
+                  index={index}
+                  players={players}
+                  inc={inc}
+                />
+              );
+            }
+          })}
+        </VStack>
+        <VStack>
+          {players.map((player: PlayerDetails, index: number) => {
+            if (!team2.includes(player.name)) {
+              return;
+            }
+
+            if (!player.setScore1) {
+              return (
+                <Player
+                  key={index}
+                  {...player}
+                  updatePlayers={setPlayers}
+                  index={index}
+                  players={players}
+                  inc={inc}
+                  setScore1={setScore1}
+                  setScore2={setScore2}
+                />
+              );
+            } else {
+              return (
+                <Player
+                  key={index}
+                  {...player}
+                  updatePlayers={setPlayers}
+                  index={index}
+                  players={players}
+                  inc={inc}
+                />
+              );
+            }
+          })}
+        </VStack>
+      </HStack>
+    );
+  };
+
+  const getFouls = (tm: number) => {
+    let tot = 0;
+    let team = tm == 1 ? team1 : team2;
+
+    for (const player of players) {
+      if (!team.includes(player.name)) {
+        continue;
+      }
+
+      tot += player.fouls;
+    }
+
+    return tot;
+  };
+
   return (
-    <Layout>
+    <Layout size={playoffs ? "1200px" : undefined}>
       <HStack w="410px" h="100%" justifyContent="space-between">
         <TeamSelect
           setTeam1={setTeam1}
@@ -788,6 +911,7 @@ const Home = () => {
               {
                 players: players,
                 winner: score1 > score2 ? 1 : score2 > score1 ? 2 : 0,
+                mode: playoffs ? "4v4" : "2v2",
               }
             );
 
@@ -827,46 +951,36 @@ const Home = () => {
           End Game
         </Button>
       </HStack>
-      <Button
-        colorScheme={inc == 1 ? "green" : "red"}
-        onClick={() => {
-          if (inc == 1) {
-            setInc(-1);
-          } else {
-            setInc(1);
-          }
-        }}
-      >
-        Mode: {inc == 1 ? "Add" : "Remove"}
-      </Button>
+      <HStack spacing={!playoffs ? undefined : "10px"}>
+        <Text fontWeight="bold" fontSize={playoffs ? "18pt" : "12pt"}>
+          FLS: {getFouls(1)}
+        </Text>
+        <Button
+          colorScheme={inc == 1 ? "green" : "red"}
+          onClick={() => {
+            if (inc == 1) {
+              setInc(-1);
+            } else {
+              setInc(1);
+            }
+          }}
+        >
+          Mode: {inc == 1 ? "Add" : "Remove"}
+        </Button>
+        <Button
+          colorScheme="blue"
+          onClick={() => {
+            setPlayoffs(!playoffs);
+          }}
+        >
+          Game: {!playoffs ? "Regular" : "Playoffs"}
+        </Button>
+        <Text fontWeight="bold" fontSize={playoffs ? "18pt" : "12pt"}>
+          FLS: {getFouls(2)}
+        </Text>
+      </HStack>
       <VStack h="max(100vh, 100%)">
-        {players.map((player: PlayerDetails, index: number) => {
-          if (!player.setScore1) {
-            return (
-              <Player
-                key={index}
-                {...player}
-                updatePlayers={setPlayers}
-                index={index}
-                players={players}
-                inc={inc}
-                setScore1={setScore1}
-                setScore2={setScore2}
-              />
-            );
-          } else {
-            return (
-              <Player
-                key={index}
-                {...player}
-                updatePlayers={setPlayers}
-                index={index}
-                players={players}
-                inc={inc}
-              />
-            );
-          }
-        })}
+        {!playoffs ? <PhonePlayerView /> : <MaxPlayerView />}
       </VStack>
     </Layout>
   );

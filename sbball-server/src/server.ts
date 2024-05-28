@@ -55,6 +55,23 @@ db.serialize(() => {
       gameId INTEGER
     )`);
 
+  db.run(`CREATE TABLE IF NOT EXISTS playoff_stats (
+      id INTEGER PRIMARY KEY,
+      ast INTEGER,
+      blk INTEGER,
+      defReb INTEGER,
+      fouls INTEGER,
+      playerName TEXT,
+      offReb INTEGER,
+      stl INTEGER,
+      threes INTEGER,
+      threesAttempted INTEGER,
+      tov INTEGER,
+      twos INTEGER,
+      twosAttempted INTEGER,
+      gameId INTEGER
+    )`);
+
   db.run(`CREATE TABLE IF NOT EXISTS games (
       id INTEGER PRIMARY KEY,
       team1 TEXT,
@@ -241,8 +258,12 @@ app.post("/api/endGame", (req, res) => {
             gameId,
           ];
 
+          const mode = req.body.mode;
+
           const insertQuery = `
-          INSERT INTO stats (ast, blk, defReb, fouls, playerName, offReb, stl, threes, threesAttempted, tov, twos, twosAttempted, gameId)
+          INSERT INTO ${
+            mode == "2v2" ? "stats" : "playoff_stats"
+          } (ast, blk, defReb, fouls, playerName, offReb, stl, threes, threesAttempted, tov, twos, twosAttempted, gameId)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
 
@@ -260,22 +281,26 @@ app.post("/api/endGame", (req, res) => {
 });
 
 app.get("/api/getPlayerAverages", (req, res) => {
-  if (!req.query.playerCount) {
-    return res.send({ error: "Invalid Request" });
-  }
+  const mode = req.query.mode;
+  const pc = mode == "2v2" ? 2 : 4;
 
   const query = `SELECT playerName, AVG((twos * 2) + (threes * 3)) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
-   ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, 
-   (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp FROM stats INNER JOIN games 
+   ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM, 
+   (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp FROM ${
+     mode == "2v2" ? "stats" : "playoff_stats"
+   } INNER JOIN games 
    ON gameId=games.id WHERE playerCount = ? GROUP BY playerName;`;
 
-  db.all(query, [req.query.playerCount], (err, rows: any) => {
+  db.all(query, [pc], (err, rows: any) => {
     if (err) {
       res.send({ error: err });
     } else {
       let dataObj = [];
 
+      console.log(rows);
+
       for (const row of rows) {
+        console.log(row);
         dataObj.push({
           player: row.playerName,
           pts: row.pts,
@@ -286,6 +311,12 @@ app.get("/api/getPlayerAverages", (req, res) => {
           tov: row.tov,
           fg: row.fg * 100,
           tp: row.tp ? row.tp * 100 : 0,
+          tpfgA: row.tpfgA,
+          tpfgM: row.tpfgM,
+          ttpfgA: row.tpfgM,
+          ttpfgM: row.ttpfgM,
+          fgA: row.ttpfgA + row.tpfgA,
+          fgM: row.ttpfgM + row.tpfgM,
         });
       }
 
