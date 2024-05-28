@@ -59,6 +59,7 @@ interface PlayerDetails {
   setScore1: Function;
   setScore2: Function;
   team: number;
+  fts: number;
 }
 
 interface PlayerDetailsProps {
@@ -78,6 +79,7 @@ interface PlayerDetailsProps {
   blk: number;
   stl: number;
   tov: number;
+  fts: number;
   // display
   compressed?: boolean;
   // update properties
@@ -127,6 +129,7 @@ const Player = ({
   setScore2,
   inc,
   compressed,
+  fts,
 }: PlayerDetailsProps) => {
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
@@ -151,6 +154,7 @@ const Player = ({
       score2,
       setScore1,
       setScore2,
+      fts,
     };
 
     if (field == "twos") {
@@ -186,6 +190,18 @@ const Player = ({
         old[1] += 3 * inc;
         setScore2(old);
       }
+    } else if (field == "fts") {
+      if (team == 1) {
+        let old = score1;
+        old[0] += 0.5 * inc;
+        old[1] += 1 * inc;
+        setScore1(old);
+      } else {
+        let old = score2;
+        old[0] += 0.5 * inc;
+        old[1] += 1 * inc;
+        setScore2(old);
+      }
     } else {
       inc > 0
         ? player[field as keyof PlayerDetails]++
@@ -202,7 +218,7 @@ const Player = ({
 
   return (
     <>
-      <HStack w={!compressed ? "410px" : "340px"}>
+      <HStack w={!compressed ? "410px" : "350px"}>
         <Text
           textAlign="left"
           fontWeight="semibold"
@@ -230,21 +246,40 @@ const Player = ({
         >
           {twos * 2 + threes * 3} PTS
         </Text>
-        <Text
-          textAlign="left"
-          fontWeight="semibold"
-          ml="auto"
-          px="3px"
-          borderRadius="md"
-          py="2px"
-          bg="#CAF0F8"
-          color="black"
-          onClick={() => {
-            updateStats("fouls");
-          }}
-        >
-          PF: {fouls}
-        </Text>
+        <VStack>
+          <Text
+            textAlign="left"
+            fontWeight="semibold"
+            ml="auto"
+            px="3px"
+            borderRadius="md"
+            py="2px"
+            bg="#CAF0F8"
+            color="black"
+            onClick={() => {
+              updateStats("fouls");
+            }}
+          >
+            PFS: {fouls}
+          </Text>
+          {compressed ? (
+            <Text
+              textAlign="left"
+              fontWeight="semibold"
+              ml="auto"
+              px="3px"
+              borderRadius="md"
+              py="2px"
+              bg="#FFDF69"
+              color="black"
+              onClick={() => {
+                updateStats("fts");
+              }}
+            >
+              FTM: {fts}
+            </Text>
+          ) : null}
+        </VStack>
       </HStack>
       <Box
         w={!compressed ? "410px" : "300px"}
@@ -667,6 +702,7 @@ const Home = () => {
         jersey: pulledPlayerData[player].jersey, // will later pull from server
         ast: 0,
         blk: 0,
+        fts: 0,
         defReb: 0,
         fouls: 0,
         stl: 0,
@@ -693,6 +729,7 @@ const Home = () => {
         jersey: pulledPlayerData[player].jersey, // will later pull from server
         ast: 0,
         blk: 0,
+        fts: 0,
         defReb: 0,
         fouls: 0,
         stl: 0,
