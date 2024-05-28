@@ -78,6 +78,8 @@ interface PlayerDetailsProps {
   blk: number;
   stl: number;
   tov: number;
+  // display
+  compressed?: boolean;
   // update properties
   updatePlayers: Function;
   players: PlayerDetails[];
@@ -97,6 +99,7 @@ interface TeamSelectProps {
   setTeam1: Function;
   setTeam2: Function;
   onSave: Function;
+  compressed?: boolean;
 }
 
 const Player = ({
@@ -123,6 +126,7 @@ const Player = ({
   setScore1,
   setScore2,
   inc,
+  compressed,
 }: PlayerDetailsProps) => {
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
@@ -198,7 +202,7 @@ const Player = ({
 
   return (
     <>
-      <HStack w="410px">
+      <HStack w={!compressed ? "410px" : "340px"}>
         <Text
           textAlign="left"
           fontWeight="semibold"
@@ -242,7 +246,12 @@ const Player = ({
           PF: {fouls}
         </Text>
       </HStack>
-      <Box w="410px" h="170px" bg="#6D98BA" borderRadius="lg">
+      <Box
+        w={!compressed ? "410px" : "300px"}
+        h="170px"
+        bg="#6D98BA"
+        borderRadius="lg"
+      >
         <Center h="100%">
           <VStack
             pos="relative"
@@ -646,8 +655,10 @@ const Home = () => {
 
     let players = [];
 
+    setScore1([0, 0]);
+    setScore2([0, 0]);
+
     for (const player of team1) {
-      console.log(pulledPlayerData[player], player);
       players.push({
         name: player,
         position: `${pulledPlayerData[player].position}${
@@ -699,8 +710,28 @@ const Home = () => {
       });
     }
 
-    setPlayers(players);
-    localStorage.setItem("gameState", JSON.stringify(players));
+    resetPlayerScores(players);
+  };
+
+  const resetPlayerScores = (ps: any) => {
+    let newPlayers = ps;
+
+    for (const player of newPlayers) {
+      player.score1 = score1;
+      player.score2 = score2;
+    }
+
+    setPlayers(newPlayers);
+  };
+
+  const findPlayerByName = (arr: any[], name: string) => {
+    for (const elem of arr) {
+      if (name == elem.name) {
+        return elem;
+      }
+    }
+
+    return -1;
   };
 
   useEffect(() => {
@@ -717,16 +748,6 @@ const Home = () => {
     setPlayers(JSON.parse(pulledState));
     setTeam1(JSON.parse(pulledT1));
     setTeam2(JSON.parse(pulledT2));
-
-    const findPlayerByName = (arr: any[], name: string) => {
-      for (const elem of arr) {
-        if (name == elem.name) {
-          return elem;
-        }
-      }
-
-      return -1;
-    };
 
     let team1 = JSON.parse(pulledT1);
     let team2 = JSON.parse(pulledT2);
@@ -790,75 +811,80 @@ const Home = () => {
     );
   };
 
+  const splitParts = () => {
+    let ps = [];
+    if (team1.length % 2 == 0) {
+      let groups = [
+        team1.slice(0, team1.length / 2),
+        team1.slice(team1.length / 2, team1.length),
+        team2.slice(0, team1.length / 2),
+        team2.slice(team1.length / 2, team1.length),
+      ];
+
+      for (const gr of groups) {
+        let p: any = [];
+        for (const pName of gr) {
+          p.push(findPlayerByName(players, pName));
+        }
+
+        ps.push(p);
+      }
+
+      return ps;
+    } else {
+      let groups = [team1, team2];
+
+      for (const gr of groups) {
+        let p: any = [];
+        for (const pName of gr) {
+          p.push(findPlayerByName(players, pName));
+        }
+
+        ps.push(p);
+      }
+
+      return ps;
+    }
+  };
+
   const MaxPlayerView = () => {
+    const tms = splitParts();
+
     return (
-      <HStack spacing={15}>
-        <VStack>
-          {players.map((player: PlayerDetails, index: number) => {
-            if (!team1.includes(player.name)) {
-              return;
-            }
-
-            if (!player.setScore1) {
-              return (
-                <Player
-                  key={index}
-                  {...player}
-                  updatePlayers={setPlayers}
-                  index={index}
-                  players={players}
-                  inc={inc}
-                  setScore1={setScore1}
-                  setScore2={setScore2}
-                />
-              );
-            } else {
-              return (
-                <Player
-                  key={index}
-                  {...player}
-                  updatePlayers={setPlayers}
-                  index={index}
-                  players={players}
-                  inc={inc}
-                />
-              );
-            }
-          })}
-        </VStack>
-        <VStack>
-          {players.map((player: PlayerDetails, index: number) => {
-            if (!team2.includes(player.name)) {
-              return;
-            }
-
-            if (!player.setScore1) {
-              return (
-                <Player
-                  key={index}
-                  {...player}
-                  updatePlayers={setPlayers}
-                  index={index}
-                  players={players}
-                  inc={inc}
-                  setScore1={setScore1}
-                  setScore2={setScore2}
-                />
-              );
-            } else {
-              return (
-                <Player
-                  key={index}
-                  {...player}
-                  updatePlayers={setPlayers}
-                  index={index}
-                  players={players}
-                  inc={inc}
-                />
-              );
-            }
-          })}
-        </VStack>
+      <HStack spacing={playoffs ? 15 : undefined}>
+        {tms.map((ppl: any[], idx: number) => (
+          <VStack key={idx}>
+            {ppl.map((player: PlayerDetails, index: number) => {
+              if (!player.setScore1) {
+                return (
+                  <Player
+                    compressed={playoffs}
+                    key={index}
+                    {...player}
+                    updatePlayers={setPlayers}
+                    index={players.indexOf(player)}
+                    players={players}
+                    inc={inc}
+                    setScore1={setScore1}
+                    setScore2={setScore2}
+                  />
+                );
+              } else {
+                return (
+                  <Player
+                    compressed={playoffs}
+                    key={index}
+                    {...player}
+                    updatePlayers={setPlayers}
+                    index={players.indexOf(player)}
+                    players={players}
+                    inc={inc}
+                  />
+                );
+              }
+            })}
+          </VStack>
+        ))}
       </HStack>
     );
   };
@@ -879,7 +905,7 @@ const Home = () => {
   };
 
   return (
-    <Layout size={playoffs ? "1200px" : undefined}>
+    <Layout size={playoffs ? "100vw" : undefined}>
       <HStack w="410px" h="100%" justifyContent="space-between">
         <TeamSelect
           setTeam1={setTeam1}
