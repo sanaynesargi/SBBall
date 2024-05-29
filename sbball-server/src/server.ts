@@ -297,11 +297,9 @@ app.get("/api/getPlayerAverages", (req, res) => {
     } else {
       let dataObj = [];
 
-      console.log(rows);
-
       for (const row of rows) {
         console.log(row);
-        dataObj.push({
+        let obj = {
           player: row.playerName,
           pts: row.pts,
           reb: row.reb,
@@ -310,14 +308,17 @@ app.get("/api/getPlayerAverages", (req, res) => {
           blk: row.blk,
           tov: row.tov,
           fg: row.fg * 100,
-          tp: row.tp ? row.tp * 100 : 0,
+          tp: row.ttpfgA > 0 ? (row.ttpfgM / row.ttpfgA) * 100 : 0,
           tpfgA: row.tpfgA,
           tpfgM: row.tpfgM,
-          ttpfgA: row.tpfgM,
+          ttpfgA: row.ttpfgA,
           ttpfgM: row.ttpfgM,
           fgA: row.ttpfgA + row.tpfgA,
           fgM: row.ttpfgM + row.tpfgM,
-        });
+        };
+
+        console.log(obj);
+        dataObj.push(obj);
       }
 
       return res.send({ data: dataObj });

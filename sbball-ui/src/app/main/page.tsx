@@ -154,12 +154,12 @@ const SortableTable = ({
         <Thead>
           <Tr>
             <Th onClick={() => handleSort3("player")}>Player</Th>
-            <Th onClick={() => handleSort3("tpfgA")}>FGM</Th>
+            <Th onClick={() => handleSort3("fgA")}>FGM</Th>
             <Th onClick={() => handleSort3("fgM")}>FGA</Th>
-            <Th onClick={() => handleSort3("ttpfgA")}>2PM</Th>
-            <Th onClick={() => handleSort3("tpfgM")}>2PA</Th>
-            <Th onClick={() => handleSort3("fgA")}>3PM</Th>
-            <Th onClick={() => handleSort3("ttpfgM")}>3PA</Th>
+            <Th onClick={() => handleSort3("tpfgM")}>2PM</Th>
+            <Th onClick={() => handleSort3("tpfgA")}>2PA</Th>
+            <Th onClick={() => handleSort3("ttpfgM")}>3PM</Th>
+            <Th onClick={() => handleSort3("ttpfgA")}>3PA</Th>
           </Tr>
         </Thead>
         <Tbody>
