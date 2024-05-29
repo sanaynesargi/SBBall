@@ -65,6 +65,7 @@ db.serialize(() => {
       offReb INTEGER,
       stl INTEGER,
       threes INTEGER,
+      fts INTEGER,
       threesAttempted INTEGER,
       tov INTEGER,
       twos INTEGER,
@@ -260,10 +261,16 @@ app.post("/api/endGame", (req, res) => {
 
           const mode = req.body.mode;
 
+          if (mode == "4v4") {
+            data.push(body[i].fts);
+          }
+
           const insertQuery = `
           INSERT INTO ${
             mode == "2v2" ? "stats" : "playoff_stats"
-          } (ast, blk, defReb, fouls, playerName, offReb, stl, threes, threesAttempted, tov, twos, twosAttempted, gameId)
+          } (ast, blk, defReb, fouls, playerName, offReb, stl, threes, threesAttempted, tov, twos, twosAttempted, gameId ${
+            mode == "2v2" ? "" : ",fts"
+          })
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
 
@@ -284,7 +291,9 @@ app.get("/api/getPlayerAverages", (req, res) => {
   const mode = req.query.mode;
   const pc = mode == "2v2" ? 2 : 4;
 
-  const query = `SELECT playerName, AVG((twos * 2) + (threes * 3)) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
+  const query = `SELECT playerName, AVG((twos * 2) + (threes * 3) ${
+    mode == "4v4" ? "+ (fts * 1)" : ""
+  }) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
    ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM, 
    (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp FROM ${
      mode == "2v2" ? "stats" : "playoff_stats"

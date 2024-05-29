@@ -191,6 +191,9 @@ const Player = ({
         setScore2(old);
       }
     } else if (field == "fts") {
+      inc > 0
+        ? player[field as keyof PlayerDetails]++
+        : player[field as keyof PlayerDetails]--;
       if (team == 1) {
         let old = score1;
         old[0] += 0.5 * inc;
@@ -244,7 +247,7 @@ const Player = ({
           bg="#3590F3"
           color="black"
         >
-          {twos * 2 + threes * 3} PTS
+          {twos * 2 + threes * 3 + fts * 1} PTS
         </Text>
         <VStack>
           <Text
