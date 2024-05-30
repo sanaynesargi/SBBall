@@ -161,7 +161,12 @@ const Player = ({
       inc > 0
         ? player[field as keyof PlayerDetails]++
         : player[field as keyof PlayerDetails]--;
-      player.twosAttempted += inc;
+
+      if (inc > 0) {
+        player.twosAttempted++;
+      } else {
+        player.twosAttempted--;
+      }
 
       if (team == 1) {
         let old = score1;
@@ -178,7 +183,13 @@ const Player = ({
       inc > 0
         ? player[field as keyof PlayerDetails]++
         : player[field as keyof PlayerDetails]--;
-      player.threesAttempted++;
+
+      if (inc > 0) {
+        player.threesAttempted++;
+      } else {
+        player.threesAttempted--;
+      }
+
       if (team == 1) {
         let old = score1;
         old[0] += 2 * inc;
