@@ -23,6 +23,13 @@ import {
   NumberInput,
   NumberInputField,
   NumberInputStepper,
+  Text,
+  Select,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
   VStack,
   useDisclosure,
   useToast,
@@ -75,7 +82,28 @@ interface PositionSelectProps {
   defaultValue?: string;
 }
 
-// TODO: ADD NICKNAME MODE
+interface PlayerLogEntry {
+  pts: number;
+  fullData: any;
+  statNum1: number | string;
+  statNum2: number | string;
+  stat1: string;
+  stat2: string;
+  name: string;
+}
+
+interface RealStatProps {
+  statNum: number | string;
+  statName: string;
+}
+
+interface FullStatDisplayProps {
+  data: any;
+  isOpen: any;
+  onOpen: any;
+  onClose: any;
+}
+
 const Player = ({
   name,
   jersey,
@@ -532,8 +560,172 @@ const PlayerEditModal = ({ index, players, setPlayers }: PlayerEditProps) => {
   );
 };
 
+const FullStatDisplay = ({
+  isOpen,
+  onClose,
+  onOpen,
+  data,
+}: FullStatDisplayProps) => {
+  `
+    ast
+    : 
+    0
+    blk
+    : 
+    0
+    fg
+    : 
+    "40.00"
+    player
+    : 
+    "Arav"
+    pts
+    : 
+    8
+    reb
+    : 
+    1
+    stl
+    : 
+    1
+    threes
+    : 
+    0
+    tov
+    : 
+    0
+    twos
+    : 
+    4
+    twosAttemped
+    : 
+    8
+  `;
+
+  return (
+    <Box>
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent bg="gray.800">
+          <ModalHeader>Box Score</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack>
+              <HStack>
+                <RealStatShort statName="pts" statNum={data["pts"]} />
+                <RealStatShort statName="reb" statNum={data["reb"]} />
+                <RealStatShort statName="ast" statNum={data["ast"]} />
+                <RealStatShort statName="stl" statNum={data["stl"]} />
+                <RealStatShort statName="blk" statNum={data["blk"]} />
+              </HStack>
+              <HStack>
+                <RealStatShort
+                  statName="2fg"
+                  statNum={`${data["twos"]}/${data["twosAttempted"]}`}
+                />
+                <RealStatShort
+                  statName="3fg"
+                  statNum={`${data["threes"]}/${data["threesAttempted"]}`}
+                />
+                <RealStatShort
+                  statName="3%"
+                  statNum={`${(
+                    (data["threes"] / data["threesAttempted"]) *
+                    100
+                  ).toFixed(2)}%`}
+                />
+              </HStack>
+              <HStack>
+                <RealStatShort statName="fg%" statNum={data.fg} />
+              </HStack>
+            </VStack>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button colorScheme="blue" onClick={onClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Box>
+  );
+};
+
+const RealStat = ({ statName, statNum }: RealStatProps) => {
+  return (
+    <HStack display="table-cell" textAlign="center">
+      <HStack spacing={1}>
+        <Heading fontSize="25pt">{statNum}</Heading>
+        <Heading fontSize="12pt" color="gray" mt="9pt" fontWeight="semibold">
+          {statName}
+        </Heading>
+      </HStack>
+    </HStack>
+  );
+};
+
+const RealStatShort = ({ statName, statNum }: RealStatProps) => {
+  return (
+    <HStack display="table-cell" textAlign="center">
+      <HStack spacing={1}>
+        <Heading fontSize="25pt">{statNum}</Heading>
+        <Heading fontSize="12pt" color="gray" mt="9pt" fontWeight="semibold">
+          {statName}
+        </Heading>
+      </HStack>
+    </HStack>
+  );
+};
+
+const GameLogEntry = ({
+  pts,
+  fullData,
+  name,
+  stat1,
+  stat2,
+  statNum1,
+  statNum2,
+}: PlayerLogEntry) => {
+  const { isOpen, onClose, onOpen } = useDisclosure();
+
+  return (
+    <Container
+      w="100%"
+      h="80px"
+      bg="#000000"
+      borderRadius="lg"
+      border="0.15px solid gray"
+      position="relative"
+      _hover={{ cursor: "pointer" }}
+      onClick={onOpen}
+    >
+      <Center w="100%" h="100%">
+        <HStack w="100%" h="100%">
+          <FullStatDisplay
+            data={fullData}
+            isOpen={isOpen}
+            onClose={onClose}
+            onOpen={onOpen}
+          />
+          <Avatar bg="#191919" color="white" name={name} />
+          <HStack alignItems="center" justifyContent="center">
+            <RealStat statName="pts" statNum={pts} />
+            <RealStat statName={stat1} statNum={statNum1} />
+            <RealStat statName={stat2} statNum={statNum2} />
+          </HStack>
+        </HStack>
+      </Center>
+    </Container>
+  );
+};
+
 const AddPlayers = () => {
   const [players, setPlayers] = useState<PlayerDetails[]>([]);
+  const [selectedPlayer, setSelectedPlayer] = useState<string>("");
+  const [selectedMode, setSelectedMode] = useState<string>("");
+  const [gameLog, setGameLog] = useState([]);
+  const [fullGameLog, setFullGameLog] = useState([]);
 
   useEffect(() => {
     const retrievePlayers = async () => {
@@ -565,23 +757,119 @@ const AddPlayers = () => {
     retrievePlayers();
   }, []);
 
+  useEffect(() => {
+    if (!selectedMode || !selectedPlayer) {
+      return;
+    }
+
+    const getData = async () => {
+      const req = await axios.get(
+        `http://${apiUrl}/api/getPlayerGameLog?mode=${selectedMode}&playerName=${selectedPlayer}`
+      );
+
+      const resp = req.data;
+
+      setGameLog(resp.data);
+      setFullGameLog(resp.dataFull);
+    };
+
+    getData();
+  }, [selectedMode, selectedPlayer]);
+
   return (
     <Layout>
-      <VStack w="410px" h="100vh">
-        <PlayerCreateModal players={players} setPlayers={setPlayers} />
-        {players.map((player: PlayerDetails, index) => {
-          return (
-            <Player
-              key={index}
-              {...player}
-              players={players}
-              setPlayers={setPlayers}
-              index={index}
-              id={player.id!}
-            />
-          );
-        })}
-      </VStack>
+      <Tabs variant="soft-rounded" colorScheme="green">
+        <Center>
+          <TabList>
+            <Tab>Create Players</Tab>
+            <Tab>Game Log</Tab>
+          </TabList>
+        </Center>
+        <TabPanels>
+          <TabPanel>
+            <VStack w="410px" h="100vh">
+              <PlayerCreateModal players={players} setPlayers={setPlayers} />
+              {players.map((player: PlayerDetails, index) => {
+                return (
+                  <Player
+                    key={index}
+                    {...player}
+                    players={players}
+                    setPlayers={setPlayers}
+                    index={index}
+                    id={player.id!}
+                  />
+                );
+              })}
+            </VStack>
+          </TabPanel>
+          <TabPanel>
+            <VStack spacing={15}>
+              <HStack>
+                {players.length == 0 ? null : (
+                  <>
+                    <Select
+                      variant="filled"
+                      placeholder="Select Mode"
+                      onChange={(e) => setSelectedMode(e.target.value)}
+                    >
+                      <option value="2v2">Regular Season</option>
+                      <option value="4v4">Playoffs</option>
+                    </Select>
+                    <Select
+                      variant="filled"
+                      placeholder="Select Player"
+                      onChange={(e) => setSelectedPlayer(e.target.value)}
+                    >
+                      {players.map((player: PlayerDetails, index) => {
+                        return (
+                          <option key={index} value={player.name}>
+                            {player.name}
+                          </option>
+                        );
+                      })}
+                    </Select>
+                  </>
+                )}
+              </HStack>
+              <VStack w="100%">
+                {gameLog.map((entry: any, index: number) => {
+                  const keys: any = Object.keys(entry);
+                  const values: any = Object.values(entry);
+
+                  const fgIncluded = keys.includes("fg");
+
+                  let otherKey = "";
+                  let otherVal = "";
+
+                  for (const key of keys) {
+                    if (key == "fg" || key == "pts") {
+                      continue;
+                    }
+
+                    otherKey = key;
+                    otherVal = entry[key];
+                    break;
+                  }
+
+                  return (
+                    <GameLogEntry
+                      stat1={otherKey}
+                      stat2={fgIncluded ? "fg" : keys[2]}
+                      pts={entry["pts"]}
+                      statNum1={otherVal}
+                      statNum2={fgIncluded ? `${entry.fg}%` : values[2]}
+                      key={index}
+                      name={selectedPlayer}
+                      fullData={fullGameLog[index]}
+                    />
+                  );
+                })}
+              </VStack>
+            </VStack>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
     </Layout>
   );
 };

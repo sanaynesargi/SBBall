@@ -27,6 +27,38 @@ const getTodayDate = () => {
   return currentDate;
 };
 
+function calculateImpressiveIndex(stats: any, weights: any, avg: any) {
+  let impressiveIndex: any = {};
+  for (let stat in stats) {
+    if (weights.hasOwnProperty(stat)) {
+      let normalizedValue = stats[stat] / avg[stat]; // Normalize the stat value
+      impressiveIndex[stat] = normalizedValue * weights[stat]; // Apply weight
+    }
+  }
+  return impressiveIndex;
+}
+
+function getTopStats(stats: any, impressiveIndex: any) {
+  // Remove 'pts' from the impressive index
+  delete impressiveIndex["pts"];
+
+  // Convert the impressiveIndex object to an array of [stat, value] pairs and sort by the impressive index value
+  let sortedStats = Object.entries(impressiveIndex).sort(
+    (a: any, b: any) => b[1] - a[1]
+  );
+
+  // Create an object with the top 2 impressive stats
+  let topStats: any = {};
+  if (sortedStats.length > 0) {
+    topStats[sortedStats[0][0]] = stats[sortedStats[0][0]];
+  }
+  if (sortedStats.length > 1) {
+    topStats[sortedStats[1][0]] = stats[sortedStats[1][0]];
+  }
+
+  return topStats;
+}
+
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS players (
       id INTEGER PRIMARY KEY,
@@ -261,7 +293,9 @@ app.post("/api/endGame", (req, res) => {
 
           const mode = req.body.mode;
 
-          if (mode == "4v4") {
+          console.log(mode);
+
+          if (mode != "2v2") {
             data.push(body[i].fts);
           }
 
@@ -271,7 +305,7 @@ app.post("/api/endGame", (req, res) => {
           } (ast, blk, defReb, fouls, playerName, offReb, stl, threes, threesAttempted, tov, twos, twosAttempted, gameId ${
             mode == "2v2" ? "" : ",fts"
           })
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
 
           db.run(insertQuery, data);
@@ -307,7 +341,6 @@ app.get("/api/getPlayerAverages", (req, res) => {
       let dataObj = [];
 
       for (const row of rows) {
-        console.log(row);
         let obj = {
           player: row.playerName,
           pts: row.pts,
@@ -326,12 +359,112 @@ app.get("/api/getPlayerAverages", (req, res) => {
           fgM: row.ttpfgM + row.tpfgM,
         };
 
-        console.log(obj);
         dataObj.push(obj);
       }
 
       return res.send({ data: dataObj });
     }
+  });
+});
+
+app.get("/api/getPlayerGameLog", (req, res) => {
+  const mode = req.query.mode;
+  const playerName = req.query.playerName;
+  const pc = mode == "2v2" ? 2 : 4;
+
+  if (!playerName || !mode) {
+    return res.send({ error: true, message: "Invalid Request" });
+  }
+
+  const queryAvg = `SELECT playerName, AVG((twos * 2) + (threes * 3) ${
+    mode == "4v4" ? "+ (fts * 1)" : ""
+  }) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
+   ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM, 
+   (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp FROM ${
+     mode == "2v2" ? "stats" : "playoff_stats"
+   } INNER JOIN games
+   ON gameId=games.id WHERE playerCount = ? AND playerName = ? GROUP BY playerName;`;
+
+  db.all(queryAvg, [pc, playerName], (_, rows: any) => {
+    const row = rows[0];
+
+    if (!row) {
+      return res.send({ data: [] });
+    }
+
+    let avg = {
+      player: row.playerName,
+      pts: row.pts,
+      reb: row.reb,
+      ast: row.ast,
+      stl: row.stl,
+      blk: row.blk,
+      tov: row.tov,
+      fg: 75,
+    };
+
+    const weights = {
+      pts: 1.0,
+      reb: 0.6,
+      ast: 1.5,
+      stl: 1.8,
+      blk: 1.8,
+      tov: -0.5, // Negative weight for turnovers since lower is better
+      fg: 0.9,
+    };
+
+    const query = `SELECT playerName, (twos * 2) + (threes * 3) ${
+      mode == "4v4" ? "+ (fts * 1)" : ""
+    } AS pts, offReb, defReb, ast, blk, stl, tov,
+    twosAttempted, twos, threesAttempted, threes 
+    FROM ${mode == "2v2" ? "stats" : "playoff_stats"} INNER JOIN games 
+   ON gameId=games.id WHERE playerCount = ? AND playerName = ?;`;
+
+    db.all(query, [pc, playerName], (err, rows: any) => {
+      if (err) {
+        res.send({ error: err });
+      } else {
+        let dataObj = [];
+        let dataFull: any = [];
+
+        if (rows.length == 0) {
+          return res.send({ data: [], dataFull: [] });
+        }
+
+        for (const row of rows) {
+          let obj = {
+            player: row.playerName,
+            pts: row.pts,
+            reb: row.offReb + row.defReb,
+            ast: row.ast,
+            stl: row.stl,
+            blk: row.blk,
+            tov: row.tov,
+            twos: row.twos,
+            threes: row.threes,
+            twosAttempted: row.twosAttempted,
+            threesAttempted: row.threesAttempted,
+            fg: (
+              ((row.twos + row.threes) /
+                (row.twosAttempted + row.threesAttempted)) *
+              100
+            ).toFixed(2),
+          };
+
+          let impressiveIndex = calculateImpressiveIndex(obj, weights, avg);
+          let topStats = getTopStats(obj, impressiveIndex);
+          let finalStats = { pts: obj.pts, ...topStats };
+
+          dataObj.push(finalStats);
+          dataFull.push(obj);
+        }
+
+        return res.send({
+          data: dataObj.reverse(),
+          dataFull: dataFull.reverse(),
+        });
+      }
+    });
   });
 });
 
