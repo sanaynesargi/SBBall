@@ -12,9 +12,9 @@ import {
   Button,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import Layout from "../../../components/Layout";
+import Layout from "../../../../components/Layout.tsx";
 import axios from "axios";
-import { apiUrl } from "../../../utils/apiUrl.tsx";
+import { apiUrl } from "../../../../utils/apiUrl.tsx";
 
 const SortableTable = ({
   data,
