@@ -49,13 +49,14 @@ const Layout = ({ children, size }: LayoutProps) => {
   const [nav, setNav] = useState("");
 
   const router = useRouter();
+  const dev = process.env.NODE_ENV == "development";
 
   useEffect(() => {
     const rec = localStorage.getItem("nav");
 
     if (!rec) {
       setNav("2");
-      router.push("/bball/create");
+      router.push(`${dev ? "" : "/bball"}/create`);
     } else {
       setNav(rec);
     }
@@ -103,7 +104,7 @@ const Layout = ({ children, size }: LayoutProps) => {
                     value={nav == "1" ? "value" : ""}
                     onClick={() => {
                       localStorage.setItem("nav", "1");
-                      router.push("/bball/create");
+                      router.push(`${dev ? "" : "/bball"}/create`);
                     }}
                   >
                     <BottomNavigationIcon as={AddIcon} />
@@ -113,7 +114,7 @@ const Layout = ({ children, size }: LayoutProps) => {
                     value={nav == "2" ? "value" : ""}
                     onClick={() => {
                       localStorage.setItem("nav", "2");
-                      router.push("/bball/");
+                      router.push(`${dev ? "/" : "/bball"}`);
                     }}
                   >
                     <BottomNavigationIcon as={EditIcon} />
@@ -123,7 +124,7 @@ const Layout = ({ children, size }: LayoutProps) => {
                     value={nav == "3" ? "value" : ""}
                     onClick={() => {
                       localStorage.setItem("nav", "3");
-                      router.push("/bball/main");
+                      router.push(`${dev ? "" : "/bball"}/main`);
                     }}
                   >
                     <BottomNavigationIcon as={BellIcon} />
