@@ -114,7 +114,7 @@ const Layout = ({ children, size }: LayoutProps) => {
                     value={nav == "2" ? "value" : ""}
                     onClick={() => {
                       localStorage.setItem("nav", "2");
-                      router.push(`${dev ? "" : "/bball"}`);
+                      router.push(`${dev ? "/" : "/bball"}`);
                     }}
                   >
                     <BottomNavigationIcon as={EditIcon} />
