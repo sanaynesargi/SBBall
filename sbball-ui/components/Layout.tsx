@@ -56,7 +56,7 @@ const Layout = ({ children, size }: LayoutProps) => {
 
     if (!rec) {
       setNav("2");
-      router.push(`${dev ? "" : "/bball"}/create`);
+      router.push(`${dev ? "" : ""}/create`);
     } else {
       setNav(rec);
     }
@@ -104,7 +104,7 @@ const Layout = ({ children, size }: LayoutProps) => {
                     value={nav == "1" ? "value" : ""}
                     onClick={() => {
                       localStorage.setItem("nav", "1");
-                      router.push(`${dev ? "" : "/bball"}/create`);
+                      router.push(`${dev ? "" : ""}/create`);
                     }}
                   >
                     <BottomNavigationIcon as={AddIcon} />
@@ -124,7 +124,7 @@ const Layout = ({ children, size }: LayoutProps) => {
                     value={nav == "3" ? "value" : ""}
                     onClick={() => {
                       localStorage.setItem("nav", "3");
-                      router.push(`${dev ? "" : "/bball"}/main`);
+                      router.push(`${dev ? "" : ""}/main`);
                     }}
                   >
                     <BottomNavigationIcon as={BellIcon} />
