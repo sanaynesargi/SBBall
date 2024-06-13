@@ -34,11 +34,11 @@ import {
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
-import Layout from "../../../components/Layout.tsx";
+import Layout from "../../../../components/Layout.tsx";
 import { useEffect, useReducer, useState } from "react";
 import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import axios from "axios";
-import { apiUrl } from "../../../utils/apiUrl.tsx";
+import { apiUrl } from "../../../../utils/apiUrl.tsx";
 
 interface PlayerDetails {
   id?: string;

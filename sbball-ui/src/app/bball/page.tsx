@@ -34,9 +34,9 @@ import {
   BottomNavigationStyleConfig,
 } from "chakra-ui-bottom-navigation";
 import { useEffect, useReducer, useState } from "react";
-import Layout from "../../components/Layout.tsx";
+import Layout from "../../../components/Layout.tsx";
 import axios from "axios";
-import { apiUrl } from "../../utils/apiUrl.tsx";
+import { apiUrl } from "../../../utils/apiUrl.tsx";
 
 interface PlayerDetails {
   position: string;
