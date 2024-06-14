@@ -70,6 +70,13 @@ db.serialize(() => {
       nickname TEXT
     )`);
 
+  db.run(`CREATE TABLE IF NOT EXISTS awards (
+      id INTEGER PRIMARY KEY,
+      name TEXT,
+      winnerName TEXT,
+      timesWon INTEGER
+    )`);
+
   db.run(`CREATE TABLE IF NOT EXISTS stats (
       id INTEGER PRIMARY KEY,
       ast INTEGER,

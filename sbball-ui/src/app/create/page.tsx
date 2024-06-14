@@ -118,6 +118,8 @@ const Player = ({
 }: PlayerProps) => {
   const toast = useToast();
 
+  const dev = process.env.NODE_ENV == "development";
+
   return (
     <Container
       w="100%"
@@ -138,48 +140,52 @@ const Player = ({
               #{jersey} {position}
               {secPosition ? `/${secPosition}` : null}
             </Heading>
-            <PlayerEditModal
-              index={index}
-              players={players}
-              setPlayers={setPlayers}
-            />
-            <IconButton
-              icon={<DeleteIcon />}
-              aria-label="delete"
-              colorScheme="red"
-              onClick={async () => {
-                let newP = players.slice();
-                let name = players[index].name;
-                let id = players[index].id;
+            {dev ? (
+              <>
+                <PlayerEditModal
+                  index={index}
+                  players={players}
+                  setPlayers={setPlayers}
+                />
+                <IconButton
+                  icon={<DeleteIcon />}
+                  aria-label="delete"
+                  colorScheme="red"
+                  onClick={async () => {
+                    let newP = players.slice();
+                    let name = players[index].name;
+                    let id = players[index].id;
 
-                const delReq = await axios.get(
-                  `http://${apiUrl}/api/deletePlayer?id=${id}`
-                );
+                    const delReq = await axios.get(
+                      `http://${apiUrl}/api/deletePlayer?id=${id}`
+                    );
 
-                const error = delReq.data.error;
+                    const error = delReq.data.error;
 
-                if (error) {
-                  toast({
-                    title: "Error Deleting Player",
-                    description: `An error has occured. Please try again later`,
-                    status: "error",
-                    duration: 3000,
-                    isClosable: true,
-                  });
-                } else {
-                  toast({
-                    title: "Deleted Player",
-                    description: `Player ${name} deleted successfully.`,
-                    status: "success",
-                    duration: 3000,
-                    isClosable: true,
-                  });
+                    if (error) {
+                      toast({
+                        title: "Error Deleting Player",
+                        description: `An error has occured. Please try again later`,
+                        status: "error",
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                    } else {
+                      toast({
+                        title: "Deleted Player",
+                        description: `Player ${name} deleted successfully.`,
+                        status: "success",
+                        duration: 3000,
+                        isClosable: true,
+                      });
 
-                  newP.splice(index, 1);
-                  setPlayers(newP);
-                }
-              }}
-            />
+                      newP.splice(index, 1);
+                      setPlayers(newP);
+                    }
+                  }}
+                />
+              </>
+            ) : null}
           </HStack>
         </HStack>
       </Center>
