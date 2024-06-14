@@ -89,6 +89,7 @@ interface PlayerLogEntry {
   stat1: string;
   stat2: string;
   name: string;
+  date: string;
 }
 
 interface RealStatProps {
@@ -101,6 +102,7 @@ interface FullStatDisplayProps {
   isOpen: any;
   onOpen: any;
   onClose: any;
+  name: any;
 }
 
 const Player = ({
@@ -564,49 +566,16 @@ const FullStatDisplay = ({
   onClose,
   onOpen,
   data,
+  name,
 }: FullStatDisplayProps) => {
-  `
-    ast
-    : 
-    0
-    blk
-    : 
-    0
-    fg
-    : 
-    "40.00"
-    player
-    : 
-    "Arav"
-    pts
-    : 
-    8
-    reb
-    : 
-    1
-    stl
-    : 
-    1
-    threes
-    : 
-    0
-    tov
-    : 
-    0
-    twos
-    : 
-    4
-    twosAttemped
-    : 
-    8
-  `;
-
   return (
     <Box>
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent bg="gray.800">
-          <ModalHeader>Box Score</ModalHeader>
+          <ModalHeader>
+            Box Score - {name}: {data["date"]}
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack>
@@ -629,8 +598,7 @@ const FullStatDisplay = ({
                 <RealStatShort
                   statName="3%"
                   statNum={`${(
-                    (data["threes"] / data["threesAttempted"]) *
-                    100
+                    (data["threes"] / data["threesAttempted"]) * 100 || 0
                   ).toFixed(2)}%`}
                 />
               </HStack>
@@ -680,6 +648,7 @@ const RealStatShort = ({ statName, statNum }: RealStatProps) => {
 const GameLogEntry = ({
   pts,
   fullData,
+  date,
   name,
   stat1,
   stat2,
@@ -706,12 +675,23 @@ const GameLogEntry = ({
             isOpen={isOpen}
             onClose={onClose}
             onOpen={onOpen}
+            name={name}
           />
           <Avatar bg="#191919" color="white" name={name} />
           <HStack alignItems="center" justifyContent="center">
             <RealStat statName="pts" statNum={pts} />
             <RealStat statName={stat1} statNum={statNum1} />
             <RealStat statName={stat2} statNum={statNum2} />
+            <Text
+              pos="absolute"
+              right={2}
+              top={0}
+              color="gray.300"
+              fontWeight="semibold"
+              fontSize="8pt"
+            >
+              {date}
+            </Text>
           </HStack>
         </HStack>
       </Center>
@@ -861,6 +841,7 @@ const AddPlayers = () => {
                       key={index}
                       name={selectedPlayer}
                       fullData={fullGameLog[index]}
+                      date={entry["date"]}
                     />
                   );
                 })}
