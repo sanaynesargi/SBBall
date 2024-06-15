@@ -476,6 +476,90 @@ app.get("/api/getPlayerGameLog", (req, res) => {
   });
 });
 
+app.post("/api/addAwards", (req, res) => {
+  const body = req.body;
+
+  try {
+    const data = body.awardData;
+
+    for (const award of data) {
+      const playerName = award[0];
+      const awardName = award[1];
+
+      const checkQuery = `
+        SELECT * FROM awards WHERE name = ? AND winnerName = ?
+      `;
+
+      db.all(checkQuery, [awardName, playerName], function (err, rows: any) {
+        if (err) {
+          console.log(err);
+          return res.send({ error: "Invalid Request" });
+        }
+
+        let prev = rows.length > 0;
+        let timesWon = prev ? rows[0].timesWon + 1 : 1;
+
+        if (!prev) {
+          const insertQuery = `
+            INSERT INTO awards (name, winnerName, timesWon)
+            VALUES (?, ?, ?)
+          `;
+          db.run(
+            insertQuery,
+            [awardName, playerName, timesWon],
+            function (err) {
+              if (err) {
+                return res.send({ error: "Invalid Request" });
+              } else {
+                return res.send({ success: true });
+              }
+            }
+          );
+        } else {
+          const insertQuery = `
+            UPDATE awards SET timesWon = timesWon + 1 WHERE name = ? AND winnerName = ?
+          `;
+
+          db.run(insertQuery, [awardName, playerName], function (err) {
+            if (err) {
+              console.log(err);
+              return res.send({ error: "Invalid Request" });
+            } else {
+              return res.send({ success: true });
+            }
+          });
+        }
+      });
+    }
+  } catch (e) {
+    return res.send({ error: e.toString() });
+  }
+});
+
+app.get("/api/getAwards", (req, res) => {
+  const player = req.query.player;
+
+  if (!player) {
+    return res.send({ error: true, message: "Invalid Request" });
+  }
+
+  const query = `SELECT * FROM awards WHERE winnerName = ?`;
+
+  db.all(query, [player], (err, rows: any) => {
+    if (err) {
+      return res.send({ error: err.toString() });
+    }
+
+    let beautified = [];
+
+    for (const row of rows) {
+      beautified.push([row.name, row.winnerName, row.timesWon]);
+    }
+
+    res.send({ awards: beautified });
+  });
+});
+
 app.listen(port, () => {
   console.log(`Server running at http://192.168.86.68:${port}/api`);
 });

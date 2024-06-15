@@ -75,7 +75,15 @@ const Layout = ({ children, size }: LayoutProps) => {
           <Box h="100%" alignItems="center" justifyContent="center">
             <Center>
               <VStack mt="2vh" mb="5vh">
-                <Heading>HoopStats</Heading>
+                <Heading
+                  _hover={{
+                    textDecor: "underline",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => router.push("/create")}
+                >
+                  HoopStats
+                </Heading>
                 <Heading fontSize="13pt" color="gray.700">
                   An S-Suite Product
                 </Heading>

@@ -39,6 +39,7 @@ import { useEffect, useReducer, useState } from "react";
 import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import axios from "axios";
 import { apiUrl } from "../../../utils/apiUrl.tsx";
+import { useRouter } from "next/navigation";
 
 interface PlayerDetails {
   id?: string;
@@ -117,8 +118,8 @@ const Player = ({
   nickname,
 }: PlayerProps) => {
   const toast = useToast();
-
   const dev = process.env.NODE_ENV == "development";
+  const router = useRouter();
 
   return (
     <Container
@@ -134,7 +135,21 @@ const Player = ({
           <HStack w="100%" alignItems="center" justifyContent="center">
             <Heading fontSize="15pt">{height}</Heading>
             <Heading fontSize="15pt">•</Heading>
-            <Heading fontSize="15pt">{name}</Heading>
+            <Heading
+              fontSize="15pt"
+              _hover={{ textDecor: "underline", cursor: "pointer" }}
+              onClick={() =>
+                router.push(
+                  `/playerInfo?name=${name}&height=${
+                    height[0] + "|" + height[2]
+                  }&num=${jersey}&pos=${`${position}${
+                    secPosition ? `/${secPosition}` : ""
+                  }`}`
+                )
+              }
+            >
+              {name}
+            </Heading>
             <Heading fontSize="15pt">•</Heading>
             <Heading fontSize="15pt">
               #{jersey} {position}
