@@ -256,7 +256,7 @@ const PlayerInfo = () => {
           <Heading fontSize="11pt">
             {height} • #{playerNum} {pos}
           </Heading>
-          <Button size="sm" onClick={() => setMode(!mode)}>
+          <Button size="sm" onClick={() => setMode(!mode)} colorScheme="blue">
             Mode: {mode ? "Playoffs" : "Regular"}
           </Button>
         </HStack>
