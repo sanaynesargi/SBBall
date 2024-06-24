@@ -24,6 +24,8 @@ import {
   Spacer,
   useToast,
   IconButton,
+  Switch,
+  UnorderedList,
 } from "@chakra-ui/react";
 import { AddIcon, BellIcon, DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import {
@@ -940,6 +942,98 @@ const Home = () => {
     );
   };
 
+  const EndGameModal = () => {
+    const { isOpen, onOpen, onClose } = useDisclosure();
+    const [averageFill, setAverageFill] = useState(false);
+
+    return (
+      <>
+        <Button onClick={onOpen} w="100%">
+          End Game
+        </Button>
+
+        <Modal isOpen={isOpen} onClose={onClose}>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Send Game Results</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <Heading fontSize="13pt">Settings</Heading>
+              <UnorderedList>
+                <HStack>
+                  <Text>Average Fill</Text>
+                  <Switch
+                    id="isChecked"
+                    onChange={(_) => {
+                      setAverageFill(!averageFill);
+                    }}
+                  />
+                </HStack>
+              </UnorderedList>
+
+              <Text mt="5vh" fontWeight="bold">
+                Make sure everything looks good!
+              </Text>
+            </ModalBody>
+
+            <ModalFooter>
+              <Button
+                w="100%"
+                onClick={async () => {
+                  const endGameReq = await axios.post(
+                    `http://${apiUrl}/api/endGame`,
+                    {
+                      players: players,
+                      winner: score1 > score2 ? 1 : score2 > score1 ? 2 : 0,
+                      mode: playoffs ? "4v4" : "2v2",
+                      averageFill,
+                    }
+                  );
+
+                  const error = endGameReq.data.error;
+
+                  if (error) {
+                    console.log(error);
+                    toast({
+                      title: "Error Ending Game",
+                      description: `Your data is still safe. Try later.`,
+                      status: "error",
+                      duration: 3000,
+                      isClosable: true,
+                    });
+                    return;
+                  }
+
+                  toast({
+                    title: "Game Ended",
+                    description: `Hopefully you had fun! Your stats have been saved.`,
+                    status: "success",
+                    duration: 3000,
+                    isClosable: true,
+                  });
+
+                  // reset display variables
+                  localStorage.setItem("gameState", "[]");
+                  localStorage.setItem("T1", "");
+                  localStorage.setItem("T2", "");
+                  setPlayers([]);
+                  setTeam1([]);
+                  setTeam2([]);
+                  setScore1([0, 0]);
+                  setScore2([0, 0]);
+
+                  onClose();
+                }}
+              >
+                End Game
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      </>
+    );
+  };
+
   const getFouls = (tm: number) => {
     let tot = 0;
     let team = tm == 1 ? team1 : team2;
@@ -980,53 +1074,7 @@ const Home = () => {
             </HStack>
           </Heading>
         </Center>
-        <Button
-          w="100%"
-          onClick={async () => {
-            const endGameReq = await axios.post(
-              `http://${apiUrl}/api/endGame`,
-              {
-                players: players,
-                winner: score1 > score2 ? 1 : score2 > score1 ? 2 : 0,
-                mode: playoffs ? "4v4" : "2v2",
-              }
-            );
-
-            const error = endGameReq.data.error;
-
-            if (error) {
-              console.log(error);
-              toast({
-                title: "Error Ending Game",
-                description: `Your data is still safe. Try later.`,
-                status: "error",
-                duration: 3000,
-                isClosable: true,
-              });
-              return;
-            }
-
-            toast({
-              title: "Game Ended",
-              description: `Hopefully you had fun! Your stats have been saved.`,
-              status: "success",
-              duration: 3000,
-              isClosable: true,
-            });
-
-            // reset display variables
-            localStorage.setItem("gameState", "[]");
-            localStorage.setItem("T1", "");
-            localStorage.setItem("T2", "");
-            setPlayers([]);
-            setTeam1([]);
-            setTeam2([]);
-            setScore1([0, 0]);
-            setScore2([0, 0]);
-          }}
-        >
-          End Game
-        </Button>
+        <EndGameModal />
       </HStack>
       <HStack spacing={!playoffs ? undefined : "10px"}>
         <Text fontWeight="bold" fontSize={playoffs ? "18pt" : "12pt"}>

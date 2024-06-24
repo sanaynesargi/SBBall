@@ -59,6 +59,38 @@ function getTopStats(stats: any, impressiveIndex: any) {
   return topStats;
 }
 
+const getPlayerAverages = (
+  mode: string,
+  playerName: string
+): Promise<any[]> => {
+  return new Promise((resolve, reject) => {
+    const pc = mode == "2v2" ? 2 : 4;
+
+    const query = `SELECT playerName, AVG(twos) as twos, AVG(threes) as threes, ${
+      mode == "2v2" ? "" : "AVG(fts) as fts,"
+    } AVG(offReb) AS offReb, AVG(defReb) as defReb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
+      AVG(twosAttempted) as twosAttempted, AVG(threesAttempted) as threesAttempted, AVG(fouls) as fouls
+     FROM ${mode == "2v2" ? "stats" : "playoff_stats"} INNER JOIN games 
+    ON gameId=games.id WHERE playerCount = ? GROUP BY playerName;`;
+
+    db.all(query, [pc], (err, rows: any) => {
+      if (err) {
+        reject(err);
+      } else {
+        for (const row of rows) {
+          if (row.playerName != playerName) {
+            continue;
+          }
+
+          let playerData = row;
+
+          resolve([playerData]);
+        }
+      }
+    });
+  });
+};
+
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS players (
       id INTEGER PRIMARY KEY,
@@ -229,6 +261,8 @@ app.post("/api/editPlayer", (req, res) => {
 
 app.post("/api/endGame", (req, res) => {
   const body = req.body.players;
+  const averageFill = req.body.averageFill;
+  const mode = req.body.mode;
 
   try {
     let team1 = [];
@@ -264,7 +298,7 @@ app.post("/api/endGame", (req, res) => {
     const idQuery = "SELECT id FROM games";
 
     try {
-      db.all(idQuery, [], (_, rows: any) => {
+      db.all(idQuery, [], async (_, rows: any) => {
         let allIds: number[] = [];
 
         for (const row of rows) {
@@ -282,28 +316,59 @@ app.post("/api/endGame", (req, res) => {
             team2.push(body[i].name);
           }
 
-          const data = [
-            body[i].ast,
-            body[i].blk,
-            body[i].defReb,
-            body[i].fouls,
-            body[i].name,
-            body[i].offReb,
-            body[i].stl,
-            body[i].threes,
-            body[i].threesAttempted,
-            body[i].tov,
-            body[i].twos,
-            body[i].twosAttempted,
-            gameId,
-          ];
+          let data: any = [];
 
-          const mode = req.body.mode;
+          if (!averageFill) {
+            data = [
+              body[i].ast,
+              body[i].blk,
+              body[i].defReb,
+              body[i].fouls,
+              body[i].name,
+              body[i].offReb,
+              body[i].stl,
+              body[i].threes,
+              body[i].threesAttempted,
+              body[i].tov,
+              body[i].twos,
+              body[i].twosAttempted,
+              gameId,
+            ];
 
-          console.log(mode);
+            if (mode != "2v2") {
+              data.push(body[i].fts);
+            }
+          } else {
+            const avgs = await getPlayerAverages(mode, body[i].name);
 
-          if (mode != "2v2") {
-            data.push(body[i].fts);
+            if (!avgs) {
+              return res.send({ error: true, message: "player doesn't exist" });
+            }
+
+            const playerAvgs = avgs[0];
+
+            // get average stats by player
+            data = [
+              playerAvgs.ast,
+              playerAvgs.blk,
+              playerAvgs.defReb,
+              playerAvgs.fouls,
+              body[i].name,
+              playerAvgs.offReb,
+              playerAvgs.stl,
+              body[i].threes,
+              body[i].threesAttempted,
+              playerAvgs.tov,
+              body[i].twos,
+              body[i].twosAttempted,
+              gameId,
+            ];
+
+            if (mode != "2v2") {
+              data.push(playerAvgs.fts);
+            }
+
+            console.log(data);
           }
 
           const insertQuery = `
