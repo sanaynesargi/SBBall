@@ -280,7 +280,7 @@ app.post("/api/endGame", (req, res) => {
     // add matchup data
     const team1Str = team1.join(";");
     const team2Str = team2.join(";");
-    const playerCount = team1.length;
+    const playerCount = mode == "4v4" ? 4 : team1.length;
     const winner = req.body.winner;
     const date = getTodayDate();
 
@@ -349,23 +349,23 @@ app.post("/api/endGame", (req, res) => {
 
             // get average stats by player
             data = [
-              playerAvgs.ast,
-              playerAvgs.blk,
-              playerAvgs.defReb,
-              playerAvgs.fouls,
+              Math.round(playerAvgs.ast),
+              Math.round(playerAvgs.blk),
+              Math.round(playerAvgs.defReb),
+              Math.round(playerAvgs.fouls),
               body[i].name,
-              playerAvgs.offReb,
-              playerAvgs.stl,
+              Math.round(playerAvgs.offReb),
+              Math.round(playerAvgs.stl),
               body[i].threes,
               body[i].threesAttempted,
-              playerAvgs.tov,
+              Math.round(playerAvgs.tov),
               body[i].twos,
               body[i].twosAttempted,
               gameId,
             ];
 
             if (mode != "2v2") {
-              data.push(playerAvgs.fts);
+              data.push(body[i].fts);
             }
 
             console.log(data);
@@ -504,19 +504,20 @@ app.get("/api/getPlayerGameLog", (req, res) => {
         }
 
         for (const row of rows) {
+          console.log(row);
           let obj = {
-            player: row.playerName,
-            pts: row.pts,
-            reb: row.offReb + row.defReb,
-            ast: row.ast,
-            stl: row.stl,
-            blk: row.blk,
-            tov: row.tov,
-            twos: row.twos,
+            player: Math.round(row.playerName),
+            pts: Math.round(row.pts),
+            reb: Math.round(row.offReb + row.defReb),
+            ast: Math.round(row.ast),
+            stl: Math.round(row.stl),
+            blk: Math.round(row.blk),
+            tov: Math.round(row.tov),
+            twos: Math.round(row.twos),
             date: row.date,
-            threes: row.threes,
-            twosAttempted: row.twosAttempted,
-            threesAttempted: row.threesAttempted,
+            threes: Math.round(row.threes),
+            twosAttempted: Math.round(row.twosAttempted),
+            threesAttempted: Math.round(row.threesAttempted),
             fg: (
               ((row.twos + row.threes) /
                 (row.twosAttempted + row.threesAttempted)) *
