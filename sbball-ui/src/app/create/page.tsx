@@ -106,6 +106,15 @@ interface FullStatDisplayProps {
   name: any;
 }
 
+interface BoxScoreEntryProps {
+  onOpen: any;
+  team1: string;
+  team2: string;
+  score1: number;
+  score2: number;
+  date: string;
+}
+
 interface BoxScorePlayerProps {
   name: string;
   pts: number;
@@ -797,6 +806,44 @@ const BoxScoreDisplay = ({
   );
 };
 
+const BoxScoreEntry = ({
+  onOpen,
+  team1,
+  team2,
+  score1,
+  score2,
+  date,
+}: BoxScoreEntryProps) => {
+  return (
+    <Center
+      border="0.30px solid gray"
+      px="25px"
+      py="10px"
+      borderRadius="md"
+      _hover={{ cursor: "pointer" }}
+      pos="relative"
+      onClick={onOpen}
+    >
+      <VStack>
+        <Text>Sanay, Ahan, Viraaj, Ansuman</Text>
+        <HStack>
+          <Text fontWeight="bold" fontSize="25pt">
+            20
+          </Text>
+          <Text>-</Text>
+          <Text fontWeight="bold" fontSize="25pt">
+            25
+          </Text>
+        </HStack>
+        <Text>Arav, Aarav, Advik, Cyrus</Text>
+        <Text fontSize="11pt" color="gray.500">
+          2/22/22
+        </Text>
+      </VStack>
+    </Center>
+  );
+};
+
 const AddPlayers = () => {
   const [players, setPlayers] = useState<PlayerDetails[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<string>("");
@@ -979,32 +1026,14 @@ const AddPlayers = () => {
                 )}
               </HStack>
               <VStack w="100%">
-                <Center
-                  border="0.30px solid gray"
-                  px="25px"
-                  py="10px"
-                  borderRadius="md"
-                  _hover={{ cursor: "pointer" }}
-                  pos="relative"
-                  onClick={onOpen}
-                >
-                  <VStack>
-                    <Text>Sanay, Ahan, Viraaj, Ansuman</Text>
-                    <HStack>
-                      <Text fontWeight="bold" fontSize="25pt">
-                        20
-                      </Text>
-                      <Text>-</Text>
-                      <Text fontWeight="bold" fontSize="25pt">
-                        25
-                      </Text>
-                    </HStack>
-                    <Text>Arav, Aarav, Advik, Cyrus</Text>
-                    <Text fontSize="11pt" color="gray.500">
-                      2/22/22
-                    </Text>
-                  </VStack>
-                </Center>
+                <BoxScoreEntry
+                  date="2/22/22"
+                  onOpen={onOpen}
+                  score1={23}
+                  score2={12}
+                  team1="Sanay, Ahan, Viraaj, Ansuman"
+                  team2="Arav, Aarav, Advik, Cyrus"
+                />
               </VStack>
             </VStack>
 
