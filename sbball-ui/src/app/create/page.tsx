@@ -106,6 +106,15 @@ interface FullStatDisplayProps {
   name: any;
 }
 
+interface BoxScorePlayerProps {
+  name: string;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+}
+
 const Player = ({
   name,
   jersey,
@@ -720,12 +729,82 @@ const GameLogEntry = ({
   );
 };
 
+const BoxScorePlayer = ({
+  name,
+  pts,
+  reb,
+  ast,
+  stl,
+  blk,
+}: BoxScorePlayerProps) => {
+  return (
+    <VStack border="0.15px solid gray" borderRadius="md" px="15px" py="5px">
+      <Text alignSelf="self-start" fontWeight="semibold">
+        {name}
+      </Text>
+      <HStack>
+        <RealStatShort statName="pts" statNum={pts} />
+        <RealStatShort statName="reb" statNum={reb} />
+        <RealStatShort statName="ast" statNum={ast} />
+        <RealStatShort statName="stl" statNum={stl} />
+        <RealStatShort statName="blk" statNum={blk} />
+      </HStack>
+    </VStack>
+  );
+};
+
+const BoxScoreDisplay = ({
+  isOpen,
+  onClose,
+  onOpen,
+  data,
+  name,
+}: FullStatDisplayProps) => {
+  return (
+    <Box>
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent bg="gray.800">
+          <ModalHeader>Box Score</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Select placeholder="Select Team">
+              <option>Sanay, Ahan, Viraaj, Ansuman</option>
+              <option>Arav, Aarav, Advik, Cyrus</option>
+            </Select>
+            <Center mt="15px">
+              <VStack>
+                <BoxScorePlayer
+                  name="Ahan"
+                  pts={12}
+                  reb={20}
+                  ast={7}
+                  blk={3}
+                  stl={5}
+                />
+              </VStack>
+            </Center>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button colorScheme="blue" onClick={onClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Box>
+  );
+};
+
 const AddPlayers = () => {
   const [players, setPlayers] = useState<PlayerDetails[]>([]);
   const [selectedPlayer, setSelectedPlayer] = useState<string>("");
   const [selectedMode, setSelectedMode] = useState<string>("");
   const [gameLog, setGameLog] = useState([]);
   const [fullGameLog, setFullGameLog] = useState([]);
+
+  const { isOpen, onClose, onOpen } = useDisclosure();
 
   useEffect(() => {
     const retrievePlayers = async () => {
@@ -783,6 +862,7 @@ const AddPlayers = () => {
           <TabList>
             <Tab>Create Players</Tab>
             <Tab>Game Log</Tab>
+            <Tab>Box Scores</Tab>
           </TabList>
         </Center>
         <TabPanels>
@@ -868,6 +948,74 @@ const AddPlayers = () => {
                 })}
               </VStack>
             </VStack>
+          </TabPanel>
+          <TabPanel>
+            <VStack spacing={15}>
+              <HStack>
+                {players.length == 0 ? null : (
+                  <>
+                    <Select
+                      variant="filled"
+                      placeholder="Select Mode"
+                      onChange={(e) => setSelectedMode(e.target.value)}
+                    >
+                      <option value="2v2">Regular Season</option>
+                      <option value="4v4">Playoffs</option>
+                    </Select>
+                    <Select
+                      variant="filled"
+                      placeholder="Select Player"
+                      onChange={(e) => setSelectedPlayer(e.target.value)}
+                    >
+                      {players.map((player: PlayerDetails, index) => {
+                        return (
+                          <option key={index} value={player.name}>
+                            {player.name}
+                          </option>
+                        );
+                      })}
+                    </Select>
+                  </>
+                )}
+              </HStack>
+              <VStack w="100%">
+                <Center
+                  border="0.30px solid gray"
+                  px="25px"
+                  py="10px"
+                  borderRadius="md"
+                  _hover={{ cursor: "pointer" }}
+                  pos="relative"
+                  onClick={onOpen}
+                >
+                  <VStack>
+                    <Text>Sanay, Ahan, Viraaj, Ansuman</Text>
+                    <HStack>
+                      <Text fontWeight="bold" fontSize="25pt">
+                        20
+                      </Text>
+                      <Text>-</Text>
+                      <Text fontWeight="bold" fontSize="25pt">
+                        25
+                      </Text>
+                    </HStack>
+                    <Text>Arav, Aarav, Advik, Cyrus</Text>
+                    <Text fontSize="11pt" color="gray.500">
+                      2/22/22
+                    </Text>
+                  </VStack>
+                </Center>
+              </VStack>
+            </VStack>
+
+            <BoxScoreDisplay
+              data={[]}
+              isOpen={isOpen}
+              name={"Abc"}
+              onClose={onClose}
+              onOpen={onOpen}
+              key={1}
+            />
           </TabPanel>
         </TabPanels>
       </Tabs>
