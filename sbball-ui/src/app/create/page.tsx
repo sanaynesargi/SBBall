@@ -776,14 +776,13 @@ const BoxScorePlayer = ({
 };
 
 const BoxScoreDisplay = ({ isOpen, onClose, data }: BoxScoreDisplayProps) => {
-  const [selectedTeam, setSelectedTeam] = useState(true);
-
   const team1Lst = data.team1.split(";");
 
   const team1Form = data.team1.replaceAll(";", ", ");
   const team2Form = data.team2.replaceAll(";", ", ");
 
   let sortedPerfs = data.perfs;
+  const [selectedTeam, setSelectedTeam] = useState(team1Form);
 
   sortedPerfs.sort((a: any, b: any) => b.pts - a.pts);
 
@@ -797,18 +796,24 @@ const BoxScoreDisplay = ({ isOpen, onClose, data }: BoxScoreDisplayProps) => {
           <ModalBody>
             <Select
               defaultValue={team1Form}
-              onChange={() => setSelectedTeam(!selectedTeam)}
+              onChange={(e) => setSelectedTeam(e.target.value)}
             >
-              <option>{team1Form}</option>
-              <option>{team2Form}</option>
+              <option value={team1Form}>{team1Form}</option>
+              <option value={team2Form}>{team2Form}</option>
             </Select>
             <Center mt="15px">
               <VStack>
                 {sortedPerfs.map((perf: any, index: number) => {
-                  if (selectedTeam && !team1Lst.includes(perf.playerName)) {
+                  if (
+                    selectedTeam == team1Form &&
+                    !team1Lst.includes(perf.playerName)
+                  ) {
                     return;
                   }
-                  if (!selectedTeam && team1Lst.includes(perf.playerName)) {
+                  if (
+                    selectedTeam != team1Form &&
+                    team1Lst.includes(perf.playerName)
+                  ) {
                     return;
                   }
 
@@ -866,11 +871,11 @@ const BoxScoreEntry = ({
       <VStack>
         <Text>{team1}</Text>
         <HStack>
-          <Text fontWeight="bold" fontSize="25pt">
+          <Text fontWeight={score1 >= score2 ? "bold" : "thin"} fontSize="25pt">
             {score1}
           </Text>
           <Text>-</Text>
-          <Text fontWeight="bold" fontSize="25pt">
+          <Text fontWeight={score2 >= score1 ? "bold" : "thin"} fontSize="25pt">
             {score2}
           </Text>
         </HStack>
