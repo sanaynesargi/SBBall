@@ -96,6 +96,7 @@ interface PlayerLogEntry {
 interface RealStatProps {
   statNum: number | string;
   statName: string;
+  sm?: boolean;
 }
 
 interface FullStatDisplayProps {
@@ -106,6 +107,13 @@ interface FullStatDisplayProps {
   name: any;
 }
 
+interface BoxScoreDisplayProps {
+  data: any;
+  isOpen: any;
+  onOpen: any;
+  onClose: any;
+}
+
 interface BoxScoreEntryProps {
   onOpen: any;
   team1: string;
@@ -113,6 +121,8 @@ interface BoxScoreEntryProps {
   score1: number;
   score2: number;
   date: string;
+  setIndexNumber: any;
+  index: number;
 }
 
 interface BoxScorePlayerProps {
@@ -122,6 +132,7 @@ interface BoxScorePlayerProps {
   ast: number;
   stl: number;
   blk: number;
+  fg: number;
 }
 
 const Player = ({
@@ -658,11 +669,11 @@ const FullStatDisplay = ({
   );
 };
 
-const RealStat = ({ statName, statNum }: RealStatProps) => {
+const RealStat = ({ statName, statNum, sm }: RealStatProps) => {
   return (
     <HStack display="table-cell" textAlign="center">
       <HStack spacing={1}>
-        <Heading fontSize="25pt">{statNum}</Heading>
+        <Heading fontSize={sm ? "20pt" : "25pt"}>{statNum}</Heading>
         <Heading fontSize="12pt" color="gray" mt="9pt" fontWeight="semibold">
           {statName}
         </Heading>
@@ -671,11 +682,11 @@ const RealStat = ({ statName, statNum }: RealStatProps) => {
   );
 };
 
-const RealStatShort = ({ statName, statNum }: RealStatProps) => {
+const RealStatShort = ({ statName, statNum, sm }: RealStatProps) => {
   return (
     <HStack display="table-cell" textAlign="center">
       <HStack spacing={1}>
-        <Heading fontSize="25pt">{statNum}</Heading>
+        <Heading fontSize={sm ? "20pt" : "25pt"}>{statNum}</Heading>
         <Heading fontSize="12pt" color="gray" mt="9pt" fontWeight="semibold">
           {statName}
         </Heading>
@@ -745,6 +756,7 @@ const BoxScorePlayer = ({
   ast,
   stl,
   blk,
+  fg,
 }: BoxScorePlayerProps) => {
   return (
     <VStack border="0.15px solid gray" borderRadius="md" px="15px" py="5px">
@@ -752,23 +764,29 @@ const BoxScorePlayer = ({
         {name}
       </Text>
       <HStack>
-        <RealStatShort statName="pts" statNum={pts} />
-        <RealStatShort statName="reb" statNum={reb} />
-        <RealStatShort statName="ast" statNum={ast} />
-        <RealStatShort statName="stl" statNum={stl} />
-        <RealStatShort statName="blk" statNum={blk} />
+        <RealStatShort statName="pts" statNum={Math.round(pts)} sm />
+        <RealStatShort statName="reb" statNum={Math.round(reb)} sm />
+        <RealStatShort statName="ast" statNum={Math.round(ast)} sm />
+        <RealStatShort statName="stl" statNum={Math.round(stl)} sm />
+        <RealStatShort statName="blk" statNum={Math.round(blk)} sm />
+        <RealStatShort statName="fg" statNum={(fg * 100).toFixed(2) + "%"} sm />
       </HStack>
     </VStack>
   );
 };
 
-const BoxScoreDisplay = ({
-  isOpen,
-  onClose,
-  onOpen,
-  data,
-  name,
-}: FullStatDisplayProps) => {
+const BoxScoreDisplay = ({ isOpen, onClose, data }: BoxScoreDisplayProps) => {
+  const [selectedTeam, setSelectedTeam] = useState(true);
+
+  const team1Lst = data.team1.split(";");
+
+  const team1Form = data.team1.replaceAll(";", ", ");
+  const team2Form = data.team2.replaceAll(";", ", ");
+
+  let sortedPerfs = data.perfs;
+
+  sortedPerfs.sort((a: any, b: any) => b.pts - a.pts);
+
   return (
     <Box>
       <Modal isOpen={isOpen} onClose={onClose}>
@@ -777,20 +795,36 @@ const BoxScoreDisplay = ({
           <ModalHeader>Box Score</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Select placeholder="Select Team">
-              <option>Sanay, Ahan, Viraaj, Ansuman</option>
-              <option>Arav, Aarav, Advik, Cyrus</option>
+            <Select
+              defaultValue={team1Form}
+              onChange={() => setSelectedTeam(!selectedTeam)}
+            >
+              <option>{team1Form}</option>
+              <option>{team2Form}</option>
             </Select>
             <Center mt="15px">
               <VStack>
-                <BoxScorePlayer
-                  name="Ahan"
-                  pts={12}
-                  reb={20}
-                  ast={7}
-                  blk={3}
-                  stl={5}
-                />
+                {sortedPerfs.map((perf: any, index: number) => {
+                  if (selectedTeam && !team1Lst.includes(perf.playerName)) {
+                    return;
+                  }
+                  if (!selectedTeam && team1Lst.includes(perf.playerName)) {
+                    return;
+                  }
+
+                  return (
+                    <BoxScorePlayer
+                      key={index}
+                      name={perf.playerName}
+                      pts={perf.pts}
+                      reb={perf.reb}
+                      ast={perf.ast}
+                      blk={perf.blk}
+                      stl={perf.stl}
+                      fg={perf.fg}
+                    />
+                  );
+                })}
               </VStack>
             </Center>
           </ModalBody>
@@ -812,6 +846,8 @@ const BoxScoreEntry = ({
   team2,
   score1,
   score2,
+  index,
+  setIndexNumber,
   date,
 }: BoxScoreEntryProps) => {
   return (
@@ -822,22 +858,25 @@ const BoxScoreEntry = ({
       borderRadius="md"
       _hover={{ cursor: "pointer" }}
       pos="relative"
-      onClick={onOpen}
+      onClick={() => {
+        setIndexNumber(index);
+        onOpen();
+      }}
     >
       <VStack>
-        <Text>Sanay, Ahan, Viraaj, Ansuman</Text>
+        <Text>{team1}</Text>
         <HStack>
           <Text fontWeight="bold" fontSize="25pt">
-            20
+            {score1}
           </Text>
           <Text>-</Text>
           <Text fontWeight="bold" fontSize="25pt">
-            25
+            {score2}
           </Text>
         </HStack>
-        <Text>Arav, Aarav, Advik, Cyrus</Text>
+        <Text>{team2}</Text>
         <Text fontSize="11pt" color="gray.500">
-          2/22/22
+          {date}
         </Text>
       </VStack>
     </Center>
@@ -852,6 +891,9 @@ const AddPlayers = () => {
   const [fullGameLog, setFullGameLog] = useState([]);
 
   const { isOpen, onClose, onOpen } = useDisclosure();
+  const [boxScoreMode, setBoxScoreMode] = useState("");
+  const [boxScores, setBoxScores] = useState([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
     const retrievePlayers = async () => {
@@ -901,6 +943,36 @@ const AddPlayers = () => {
 
     getData();
   }, [selectedMode, selectedPlayer]);
+
+  useEffect(() => {
+    if (!boxScoreMode) {
+      return;
+    }
+
+    const getData = async () => {
+      const req = await axios.get(
+        `http://${apiUrl}/api/getBoxScores?mode=${boxScoreMode}`
+      );
+
+      const resp = req.data;
+
+      function parseDate(dateString: any) {
+        const parts = dateString.split("/");
+        return new Date(parts[2], parts[0] - 1, parts[1]);
+      }
+
+      resp
+        .sort(
+          (a: any, b: any) =>
+            (parseDate(a.date) as any) - (parseDate(b.date) as any)
+        )
+        .reverse();
+
+      setBoxScores(resp);
+    };
+
+    getData();
+  }, [boxScoreMode]);
 
   return (
     <Layout>
@@ -1004,47 +1076,40 @@ const AddPlayers = () => {
                     <Select
                       variant="filled"
                       placeholder="Select Mode"
-                      onChange={(e) => setSelectedMode(e.target.value)}
+                      onChange={(e) => setBoxScoreMode(e.target.value)}
                     >
                       <option value="2v2">Regular Season</option>
                       <option value="4v4">Playoffs</option>
-                    </Select>
-                    <Select
-                      variant="filled"
-                      placeholder="Select Player"
-                      onChange={(e) => setSelectedPlayer(e.target.value)}
-                    >
-                      {players.map((player: PlayerDetails, index) => {
-                        return (
-                          <option key={index} value={player.name}>
-                            {player.name}
-                          </option>
-                        );
-                      })}
                     </Select>
                   </>
                 )}
               </HStack>
               <VStack w="100%">
-                <BoxScoreEntry
-                  date="2/22/22"
-                  onOpen={onOpen}
-                  score1={23}
-                  score2={12}
-                  team1="Sanay, Ahan, Viraaj, Ansuman"
-                  team2="Arav, Aarav, Advik, Cyrus"
-                />
+                {boxScores.map((entry: any, index) => {
+                  return (
+                    <BoxScoreEntry
+                      index={index}
+                      setIndexNumber={setSelectedIndex}
+                      date={entry.date}
+                      onOpen={onOpen}
+                      score1={entry.team1Score}
+                      score2={entry.team2Score}
+                      team1={entry.team1.replaceAll(";", ", ")}
+                      team2={entry.team2.replaceAll(";", ", ")}
+                    />
+                  );
+                })}
               </VStack>
             </VStack>
-
-            <BoxScoreDisplay
-              data={[]}
-              isOpen={isOpen}
-              name={"Abc"}
-              onClose={onClose}
-              onOpen={onOpen}
-              key={1}
-            />
+            {boxScores.length > 0 ? (
+              <BoxScoreDisplay
+                data={boxScores[selectedIndex]}
+                isOpen={isOpen}
+                onClose={onClose}
+                onOpen={onOpen}
+                key={1}
+              />
+            ) : null}
           </TabPanel>
         </TabPanels>
       </Tabs>
