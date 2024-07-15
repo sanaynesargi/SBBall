@@ -542,6 +542,76 @@ app.get("/api/getPlayerGameLog", (req, res) => {
   });
 });
 
+app.get("/api/getBoxScores", (req, res) => {
+  const mode = req.query.mode;
+  const pc = mode == "2v2" ? 2 : 4;
+
+  if (!mode) {
+    return res.send({ error: true, message: "Invalid Request" });
+  }
+
+  const playerQ = `SELECT * FROM games WHERE playerCount = ?`;
+
+  db.all(playerQ, [pc], (_, games: any[]) => {
+    if (!games || games.length === 0) {
+      return res.send({ error: true, message: "No games found" });
+    }
+
+    let dataObj = [];
+    let processedGames = 0;
+
+    for (const game of games) {
+      const gameId = game.id;
+      const date = game.date;
+      const team1 = game.team1;
+      const team2 = game.team2;
+
+      const team1Lst = team1.split(";");
+
+      let team1Score = 0;
+      let team2Score = 0;
+
+      const gameQ = `SELECT playerName, AVG((twos * 2) + (threes * 3) ${
+        mode == "4v4" ? "+ (fts * 1)" : ""
+      }) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
+        ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM, 
+        (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp 
+        FROM ${mode == "2v2" ? "stats" : "playoff_stats"} 
+        WHERE gameId=? 
+        GROUP BY playerName`;
+
+      db.all(gameQ, [gameId], (_, performances: any[]) => {
+        for (const perf of performances) {
+          const playsTeam1 = team1Lst.includes(perf.playerName);
+
+          if (playsTeam1) {
+            team1Score += perf.pts;
+          } else {
+            team2Score += perf.pts;
+          }
+        }
+
+        dataObj.push({
+          perfs: performances,
+          team1Score: team1Score,
+          team2Score: team2Score,
+          team1,
+          team2,
+          date,
+        });
+
+        processedGames++;
+
+        if (processedGames === games.length) {
+          res.send(dataObj);
+        }
+
+        console.log(`${team1Score} - ${team2Score}`);
+      });
+    }
+  });
+});
+
 app.post("/api/addAwards", (req, res) => {
   const body = req.body;
 
