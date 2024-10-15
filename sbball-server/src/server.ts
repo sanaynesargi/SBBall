@@ -819,16 +819,82 @@ app.get("/api/exp", (req, res) => {
   const flattenGameMap = (gameFeed: any, gameId: any) => {
     let feed = [];
 
+    let exception1 = null;
+    let exception2 = null;
+    let exception3 = null;
+
     for (const key of Object.keys(gameFeed)) {
       for (const entry of gameFeed[key]) {
-        feed.push({
+        const value = {
           ...entry,
           gameId,
-        });
+        };
+
+        // test for exceptions (below)
+        if (gameId == 18) {
+          if (
+            !exception1 &&
+            entry.player == "Arav" &&
+            entry.two &&
+            entry.make
+          ) {
+            exception1 = value;
+          } else {
+            feed.push(value);
+          }
+        } else if (gameId == 19) {
+          if (
+            !exception2 &&
+            entry.player == "Sanay" &&
+            entry.two &&
+            entry.make
+          ) {
+            exception2 = value;
+          } else {
+            feed.push(value);
+          }
+        } else if (gameId == 20) {
+          if (
+            !exception3 &&
+            entry.player == "Sanay" &&
+            !entry.two &&
+            !entry.ft &&
+            entry.make
+          ) {
+            exception3 = value;
+          } else {
+            feed.push(value);
+          }
+        } else {
+          feed.push(value);
+        }
       }
     }
 
-    return shuffleArray(feed);
+    feed = shuffleArray(feed);
+
+    // add exceptions
+
+    // Arav Game Winner (id = 18) (two)
+    if (exception1) {
+      exception1.desc = "14' contested floater buzzer beater";
+      feed.push(exception1);
+    }
+
+    // Sanay Game Winner (id = 19) (two)
+    if (exception2) {
+      exception2.desc = "17' fadeaway dagger";
+      feed.push(exception2);
+    }
+
+    // Sanay Series Clincher (id = 20) (three)
+    if (exception3) {
+      exception3.desc = "20' contested corner three";
+      feed.push(exception3);
+      // console.log(feed[feed.length - 1]);
+    }
+
+    return feed;
   };
 
   let street = false;
@@ -866,6 +932,8 @@ app.get("/api/exp", (req, res) => {
       const threesAttempted = row.threesAttempted;
       const threesMade = row.threes;
 
+      const freeThrowsMade = row.fts;
+
       // cannot accurately give snapshots for these (will have to use final numbers)
       let snapshotAst = Math.round(row.ast);
       let snapshotOffReb = Math.round(row.offReb);
@@ -884,13 +952,15 @@ app.get("/api/exp", (req, res) => {
         );
 
         // made shot
-        if (c <= twosMade) {
+        if (c < twosMade) {
           playerShotLogs[row.gameId][player].push({
             desc: generateShotDescription(shotDist, "Made", shotType),
             pts: 0,
+
             ast: false,
             defReb: false,
             offReb: false,
+
             make: true,
             two: true,
             player,
@@ -899,9 +969,11 @@ app.get("/api/exp", (req, res) => {
           playerShotLogs[row.gameId][player].push({
             desc: generateShotDescription(shotDist, "Miss", shotType),
             pts: 0,
+
             ast: false,
             defReb: false,
             offReb: false,
+
             make: false,
             two: true,
             player,
@@ -914,13 +986,15 @@ app.get("/api/exp", (req, res) => {
         let shotDist = calculateShotRange(shotRange, playerShotProfile[2]);
 
         // made shot
-        if (c <= threesMade) {
+        if (c < threesMade) {
           playerShotLogs[row.gameId][player].push({
             desc: generateShotDescription(shotDist, "Made", "three"),
             pts: 0,
+
             ast: false,
             defReb: false,
             offReb: false,
+
             make: true,
             two: false,
             player,
@@ -929,9 +1003,11 @@ app.get("/api/exp", (req, res) => {
           playerShotLogs[row.gameId][player].push({
             desc: generateShotDescription(shotDist, "Miss", "three"),
             pts: 0,
+
             ast: false,
             defReb: false,
             offReb: false,
+
             make: false,
             two: false,
             player,
@@ -939,13 +1015,31 @@ app.get("/api/exp", (req, res) => {
         }
       }
 
+      for (let c = 0; c < freeThrowsMade; c++) {
+        playerShotLogs[row.gameId][player].push({
+          desc: `Free throw made`,
+          pts: 0,
+
+          ast: false,
+          defReb: false,
+          offReb: false,
+
+          make: true,
+          two: false,
+          ft: true,
+          player,
+        });
+      }
+
       for (let c = 0; c < snapshotAst; c++) {
         playerShotLogs[row.gameId][player].push({
           desc: `${player} assisted basket`,
           pts: 0,
+
           ast: true,
           defReb: false,
           offReb: false,
+
           make: false,
           two: false,
           player,
@@ -956,9 +1050,11 @@ app.get("/api/exp", (req, res) => {
         playerShotLogs[row.gameId][player].push({
           desc: `${player} defensive rebound`,
           pts: 0,
+
           ast: false,
           defReb: true,
           offReb: false,
+
           make: false,
           two: false,
           player,
@@ -969,9 +1065,11 @@ app.get("/api/exp", (req, res) => {
         playerShotLogs[row.gameId][player].push({
           desc: `${player} offensive rebound`,
           pts: 0,
+
           ast: false,
           defReb: false,
           offReb: true,
+
           make: false,
           two: false,
           player,
@@ -1015,6 +1113,8 @@ app.get("/api/exp", (req, res) => {
         } else if (entry.make) {
           if (entry.two) {
             currPts[entry.player] += twoAdd;
+          } else if (entry.ft) {
+            currPts[entry.player] += 1;
           } else {
             currPts[entry.player] += threeAdd;
           }
