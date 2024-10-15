@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import sqlite3 from "sqlite3";
+import { shotTendencies } from "./shotTendencies";
 
 const app = express();
 const port = 8080;
@@ -70,7 +71,7 @@ const getPlayerAverages = (
       mode == "2v2" ? "" : "AVG(fts) as fts,"
     } AVG(offReb) AS offReb, AVG(defReb) as defReb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
       AVG(twosAttempted) as twosAttempted, AVG(threesAttempted) as threesAttempted, AVG(fouls) as fouls
-     FROM ${mode == "2v2" ? "stats" : "playoff_stats"} INNER JOIN games 
+     FROM ${mode == "2v2" ? "stats" : "playoff_stats"} INNER JOIN games
     ON gameId=games.id WHERE playerCount = ? GROUP BY playerName;`;
 
     db.all(query, [pc], (err, rows: any) => {
@@ -107,6 +108,19 @@ db.serialize(() => {
       name TEXT,
       winnerName TEXT,
       timesWon INTEGER
+    )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS game_feed (
+      id INTEGER PRIMARY KEY,
+      rel_id INTEGER,
+      playerName TEXT,
+      desc TEXT,
+      score TEXT,
+      snapshotPts INTEGER,
+      snapshotAst INTEGER,
+      snapshotOffReb INTEGER,
+      snapshotDefReb INTEGER,
+      gameId INTEGER
     )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS stats (
@@ -236,7 +250,7 @@ app.post("/api/editPlayer", (req, res) => {
     ];
 
     const updateQuery = `
-      UPDATE players SET 
+      UPDATE players SET
         playerName = ?,
         jersey = ?,
         position = ?,
@@ -367,8 +381,6 @@ app.post("/api/endGame", (req, res) => {
             if (mode != "2v2") {
               data.push(body[i].fts);
             }
-
-            console.log(data);
           }
 
           const insertQuery = `
@@ -400,10 +412,10 @@ app.get("/api/getPlayerAverages", (req, res) => {
   const query = `SELECT playerName, AVG((twos * 2) + (threes * 3) ${
     mode == "4v4" ? "+ (fts * 1)" : ""
   }) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
-   ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM, 
+   ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM,
    (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp FROM ${
      mode == "2v2" ? "stats" : "playoff_stats"
-   } INNER JOIN games 
+   } INNER JOIN games
    ON gameId=games.id WHERE playerCount = ? GROUP BY playerName;`;
 
   db.all(query, [pc], (err, rows: any) => {
@@ -451,7 +463,7 @@ app.get("/api/getPlayerGameLog", (req, res) => {
   const queryAvg = `SELECT playerName, AVG((twos * 2) + (threes * 3) ${
     mode == "4v4" ? "+ (fts * 1)" : ""
   }) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
-   ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM, 
+   ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM,
    (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp FROM ${
      mode == "2v2" ? "stats" : "playoff_stats"
    } INNER JOIN games
@@ -488,8 +500,8 @@ app.get("/api/getPlayerGameLog", (req, res) => {
     const query = `SELECT playerName, (twos * 2) + (threes * 3) ${
       mode == "4v4" ? "+ (fts * 1)" : ""
     } AS pts, offReb, defReb, ast, blk, stl, tov,
-    twosAttempted, twos, threesAttempted, threes, date 
-    FROM ${mode == "2v2" ? "stats" : "playoff_stats"} INNER JOIN games 
+    twosAttempted, twos, threesAttempted, threes, date
+    FROM ${mode == "2v2" ? "stats" : "playoff_stats"} INNER JOIN games
    ON gameId=games.id WHERE playerCount = ? AND playerName = ?;`;
 
     db.all(query, [pc, playerName], (err, rows: any) => {
@@ -504,7 +516,6 @@ app.get("/api/getPlayerGameLog", (req, res) => {
         }
 
         for (const row of rows) {
-          console.log(row);
           let obj = {
             player: Math.round(row.playerName),
             pts: Math.round(row.pts),
@@ -574,10 +585,10 @@ app.get("/api/getBoxScores", (req, res) => {
       const gameQ = `SELECT playerName, AVG((twos * 2) + (threes * 3) ${
         mode == "4v4" ? "+ (fts * 1)" : ""
       }) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
-        ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM, 
-        (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp 
-        FROM ${mode == "2v2" ? "stats" : "playoff_stats"} 
-        WHERE gameId=? 
+        ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM,
+        (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp
+        FROM ${mode == "2v2" ? "stats" : "playoff_stats"}
+        WHERE gameId=?
         GROUP BY playerName`;
 
       db.all(gameQ, [gameId], (_, performances: any[]) => {
@@ -605,8 +616,6 @@ app.get("/api/getBoxScores", (req, res) => {
         if (processedGames === games.length) {
           res.send(dataObj);
         }
-
-        console.log(`${team1Score} - ${team2Score}`);
       });
     }
   });
@@ -694,6 +703,356 @@ app.get("/api/getAwards", (req, res) => {
 
     res.send({ awards: beautified });
   });
+});
+
+const generateShotDescription = (
+  distance: number,
+  result: string,
+  range: any
+) => {
+  const shotActions = {
+    paint: [
+      "driving layup",
+      "floater",
+      "bank shot",
+      "reverse layup",
+      "put-back",
+      "paint jumper",
+      "push shot",
+    ],
+    mid: [
+      "step-back jumper",
+      "fadeaway",
+      "pull-up jumper",
+      "turnaround jumper",
+      "catch-and-shoot",
+      "contested jumper",
+      "bank shot",
+    ],
+    three: [
+      "deep three",
+      "snipe",
+      "step-back three",
+      "catch-and-shoot three",
+      "pull-up three",
+      "corner three",
+      "contested three",
+    ],
+  };
+
+  const shotResults = {
+    made: [],
+    missed: ["Missed"],
+  };
+
+  // Determine if shot is "long-range" or use actual distance
+  const distanceDescriptor =
+    range === "three" ? `${distance}'` : `${distance}'`;
+
+  // Select a random action from the corresponding range
+  const randomAction =
+    shotActions[range][Math.floor(Math.random() * shotActions[range].length)];
+
+  // Select a random result
+  const randomResult =
+    result.toLowerCase() === "made"
+      ? ""
+      : shotResults.missed[
+          Math.floor(Math.random() * shotResults.missed.length)
+        ];
+
+  // Return the generated shot description
+  return `${
+    randomResult ? randomResult + " " : ""
+  }${distanceDescriptor} ${randomAction}`;
+};
+
+/* Archived */ /* DEPRECATED */
+app.get("/api/exp", (req, res) => {
+  /*
+  This function (and sub-functions) is purely for retroactive game feed filling and will be archived once final- based on voted shot profiles it will fill the player shot feed similar to the one the Real App has.
+
+  Shot distances are normalized to a high school court
+  */
+
+  // ARCHIVED
+
+  return res.send({ deprecated: true });
+
+  const calculateTwoCategoryProb = (paintW: number, midW: number) => {
+    const total = paintW + midW;
+    const probP = paintW / total; // Probability of paint
+
+    const randomN = Math.random();
+
+    // Determine category based on random number
+    if (randomN < probP) {
+      return "paint";
+    } else {
+      return "mid";
+    }
+  };
+
+  const calculateShotRange = (range: [number, number], weight: number) => {
+    const [min, max] = range;
+
+    // Generate a random number with weight influence
+    const randomN = Math.pow(Math.random(), 1 / (weight / 100));
+
+    // Scale the random number to the provided range
+    const result = min + (max - min) * randomN;
+
+    return Math.round(result);
+  };
+
+  function shuffleArray(array: any) {
+    for (let i = array.length - 1; i > 0; i--) {
+      // Generate a random index from 0 to i
+      const j = Math.floor(Math.random() * (i + 1));
+      // Swap elements at indices i and j
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  // this just puts everything in a random order (not what actually happened)
+  const flattenGameMap = (gameFeed: any, gameId: any) => {
+    let feed = [];
+
+    for (const key of Object.keys(gameFeed)) {
+      for (const entry of gameFeed[key]) {
+        feed.push({
+          ...entry,
+          gameId,
+        });
+      }
+    }
+
+    return shuffleArray(feed);
+  };
+
+  let street = false;
+  const query = "SELECT * FROM playoff_stats";
+
+  const shotTypeRanges: any = {
+    paint: [1, 9],
+    mid: [10, 19],
+    three: [20, 25],
+  };
+
+  const shotMap: any = {
+    paint: 0,
+    mid: 1,
+    three: 2,
+  };
+
+  db.all(query, (err, rows: any) => {
+    let playerShotLogs: any = {};
+
+    for (const row of rows) {
+      const player = row.playerName;
+      const playerShotProfile = shotTendencies[player];
+
+      if (!playerShotLogs[row.gameId]) {
+        playerShotLogs[row.gameId] = [];
+      }
+      if (!playerShotLogs[row.gameId][player]) {
+        playerShotLogs[row.gameId][player] = [];
+      }
+
+      const twosAttempted = row.twosAttempted;
+      const twosMade = row.twos;
+
+      const threesAttempted = row.threesAttempted;
+      const threesMade = row.threes;
+
+      // cannot accurately give snapshots for these (will have to use final numbers)
+      let snapshotAst = Math.round(row.ast);
+      let snapshotOffReb = Math.round(row.offReb);
+      let snapshotDefReb = Math.round(row.defReb);
+
+      for (let c = 0; c < twosAttempted; c++) {
+        let shotType: any = calculateTwoCategoryProb(
+          playerShotProfile[0],
+          playerShotProfile[1]
+        );
+
+        let shotRange = shotTypeRanges[shotType];
+        let shotDist = calculateShotRange(
+          shotRange,
+          playerShotProfile[shotMap[shotType]]
+        );
+
+        // made shot
+        if (c <= twosMade) {
+          playerShotLogs[row.gameId][player].push({
+            desc: generateShotDescription(shotDist, "Made", shotType),
+            pts: 0,
+            ast: false,
+            defReb: false,
+            offReb: false,
+            make: true,
+            two: true,
+            player,
+          });
+        } else {
+          playerShotLogs[row.gameId][player].push({
+            desc: generateShotDescription(shotDist, "Miss", shotType),
+            pts: 0,
+            ast: false,
+            defReb: false,
+            offReb: false,
+            make: false,
+            two: true,
+            player,
+          });
+        }
+      }
+
+      for (let c = 0; c < threesAttempted; c++) {
+        let shotRange = shotTypeRanges.three;
+        let shotDist = calculateShotRange(shotRange, playerShotProfile[2]);
+
+        // made shot
+        if (c <= threesMade) {
+          playerShotLogs[row.gameId][player].push({
+            desc: generateShotDescription(shotDist, "Made", "three"),
+            pts: 0,
+            ast: false,
+            defReb: false,
+            offReb: false,
+            make: true,
+            two: false,
+            player,
+          });
+        } else {
+          playerShotLogs[row.gameId][player].push({
+            desc: generateShotDescription(shotDist, "Miss", "three"),
+            pts: 0,
+            ast: false,
+            defReb: false,
+            offReb: false,
+            make: false,
+            two: false,
+            player,
+          });
+        }
+      }
+
+      for (let c = 0; c < snapshotAst; c++) {
+        playerShotLogs[row.gameId][player].push({
+          desc: `${player} assisted basket`,
+          pts: 0,
+          ast: true,
+          defReb: false,
+          offReb: false,
+          make: false,
+          two: false,
+          player,
+        });
+      }
+
+      for (let c = 0; c < snapshotDefReb; c++) {
+        playerShotLogs[row.gameId][player].push({
+          desc: `${player} defensive rebound`,
+          pts: 0,
+          ast: false,
+          defReb: true,
+          offReb: false,
+          make: false,
+          two: false,
+          player,
+        });
+      }
+
+      for (let c = 0; c < snapshotOffReb; c++) {
+        playerShotLogs[row.gameId][player].push({
+          desc: `${player} offensive rebound`,
+          pts: 0,
+          ast: false,
+          defReb: false,
+          offReb: true,
+          make: false,
+          two: false,
+          player,
+        });
+      }
+
+      let shuffledPlayer = shuffleArray(playerShotLogs[row.gameId][player]);
+
+      playerShotLogs[row.gameId][player] = shuffledPlayer;
+    }
+
+    for (const gameId of Object.keys(playerShotLogs)) {
+      let query =
+        "INSERT INTO game_feed (rel_id, playerName, desc, score, snapshotPts, snapshotAst, snapshotOffReb, snapshotDefReb, gameId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+      let log = playerShotLogs[gameId];
+      let flattened = flattenGameMap(log, gameId);
+      let currPts: any = {};
+      let currAst: any = {};
+      let currDefReb: any = {};
+      let currOffReb: any = {};
+
+      for (const name of Object.keys(log)) {
+        currPts[name] = 0;
+        currAst[name] = 0;
+        currDefReb[name] = 0;
+        currOffReb[name] = 0;
+      }
+
+      let twoAdd = street ? 1 : 2;
+      let threeAdd = street ? 2 : 3;
+      let rel_id = 0;
+
+      for (const entry of flattened) {
+        if (entry.ast) {
+          currAst[entry.player] += 1;
+        } else if (entry.defReb) {
+          currDefReb[entry.player] += 1;
+        } else if (entry.offReb) {
+          currOffReb[entry.player] += 1;
+        } else if (entry.make) {
+          if (entry.two) {
+            currPts[entry.player] += twoAdd;
+          } else {
+            currPts[entry.player] += threeAdd;
+          }
+        }
+
+        entry.pts = currPts[entry.player];
+        entry.ast = currAst[entry.player];
+        entry.offReb = currDefReb[entry.player];
+        entry.defReb = currOffReb[entry.player];
+        entry.rel_id = rel_id;
+
+        rel_id++;
+      }
+
+      // insert
+      for (const entry of flattened) {
+        db.all(
+          query,
+          [
+            entry.rel_id,
+            entry.player,
+            entry.desc,
+            "0-0",
+            entry.pts,
+            entry.ast,
+            entry.offReb,
+            entry.defReb,
+            entry.gameId,
+          ],
+          (err, rows) => {
+            console.log(err);
+          }
+        );
+      }
+    }
+  });
+
+  res.send({ yay: 1 });
 });
 
 app.listen(port, () => {
