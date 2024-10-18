@@ -1155,6 +1155,22 @@ app.get("/api/exp", (req, res) => {
   res.send({ yay: 1 });
 });
 
+app.get("/api/gameFeed", (req, res) => {
+  const params = req.query;
+
+  if (!params.gameId) {
+    return res.send({ error: true, msg: "Invalid Request" });
+  }
+
+  const query = `SELECT * FROM game_feed WHERE gameId = ?`;
+  db.all(query, [params.gameId], (err, rows) => {
+    if (err) {
+      res.send({ err });
+    }
+    res.send({ feed: rows });
+  });
+});
+
 app.listen(port, () => {
   console.log(`Server running at http://192.168.86.68:${port}/api`);
 });
