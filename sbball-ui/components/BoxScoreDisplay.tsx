@@ -22,7 +22,11 @@ interface BoxScoreDisplayProps {
   onClose: any;
 }
 
-const BoxScoreDisplay = ({ isOpen, onClose, data }: BoxScoreDisplayProps) => {
+export const BoxScoreDisplay = ({
+  isOpen,
+  onClose,
+  data,
+}: BoxScoreDisplayProps) => {
   const team1Lst = data.team1.split(";");
 
   const team1Form = data.team1.replaceAll(";", ", ");
