@@ -10,8 +10,20 @@ import {
   TabPanel,
   TabPanels,
   Tabs,
+  Avatar,
+  Divider,
+  Button,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  Select,
 } from "@chakra-ui/react";
 import Layout from "../../../components/Layout";
+import { useState } from "react";
 
 const GameView = () => {
   return (
@@ -34,7 +46,13 @@ const GameView = () => {
         </HStack>
       </Center>
 
+      {/* Box Score */}
+      <Button>View Box Score</Button>
+
       {/* Feed */}
+      <VStack w="100%">
+        <Divider w="80%" />
+      </VStack>
     </Layout>
   );
 };

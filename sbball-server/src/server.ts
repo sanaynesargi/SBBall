@@ -123,6 +123,19 @@ db.serialize(() => {
       gameId INTEGER
     )`);
 
+  db.run(`CREATE TABLE IF NOT EXISTS game_feed2 (
+      id INTEGER PRIMARY KEY,
+      rel_id INTEGER,
+      playerName TEXT,
+      desc TEXT,
+      score TEXT,
+      snapshotPts INTEGER,
+      snapshotAst INTEGER,
+      snapshotOffReb INTEGER,
+      snapshotDefReb INTEGER,
+      gameId INTEGER
+    )`);
+
   db.run(`CREATE TABLE IF NOT EXISTS stats (
       id INTEGER PRIMARY KEY,
       ast INTEGER,
@@ -603,6 +616,7 @@ app.get("/api/getBoxScores", (req, res) => {
         }
 
         dataObj.push({
+          gameId,
           perfs: performances,
           team1Score: team1Score,
           team2Score: team2Score,
@@ -898,7 +912,7 @@ app.get("/api/exp", (req, res) => {
   };
 
   let street = false;
-  const query = "SELECT * FROM playoff_stats";
+  const query = "SELECT * FROM stats";
 
   const shotTypeRanges: any = {
     paint: [1, 9],
@@ -1083,7 +1097,7 @@ app.get("/api/exp", (req, res) => {
 
     for (const gameId of Object.keys(playerShotLogs)) {
       let query =
-        "INSERT INTO game_feed (rel_id, playerName, desc, score, snapshotPts, snapshotAst, snapshotOffReb, snapshotDefReb, gameId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        "INSERT INTO game_feed2 (rel_id, playerName, desc, score, snapshotPts, snapshotAst, snapshotOffReb, snapshotDefReb, gameId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
       let log = playerShotLogs[gameId];
       let flattened = flattenGameMap(log, gameId);
@@ -1158,11 +1172,16 @@ app.get("/api/exp", (req, res) => {
 app.get("/api/gameFeed", (req, res) => {
   const params = req.query;
 
-  if (!params.gameId) {
+  if (!params.gameId || !params.mode) {
     return res.send({ error: true, msg: "Invalid Request" });
   }
 
-  const query = `SELECT * FROM game_feed WHERE gameId = ?`;
+  // game_feed2 = regular season
+  // game_feed = playoffs
+
+  const query = `SELECT * FROM ${
+    params.mode == "4v4" ? "game_feed" : "game_feed2"
+  } WHERE gameId = ?`;
   db.all(query, [params.gameId], (err, rows) => {
     if (err) {
       res.send({ err });
