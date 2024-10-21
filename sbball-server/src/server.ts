@@ -120,6 +120,8 @@ db.serialize(() => {
       snapshotAst INTEGER,
       snapshotOffReb INTEGER,
       snapshotDefReb INTEGER,
+      snapshotBlk INTEGER,
+      snapshotStl INTEGER,
       gameId INTEGER
     )`);
 
@@ -133,6 +135,8 @@ db.serialize(() => {
       snapshotAst INTEGER,
       snapshotOffReb INTEGER,
       snapshotDefReb INTEGER,
+      snapshotBlk INTEGER,
+      snapshotStl INTEGER,
       gameId INTEGER
     )`);
 
@@ -809,7 +813,7 @@ const generateShotDescription = (
       "fadeaway",
       "pull-up jumper",
       "turnaround jumper",
-      "catch-and-shoot",
+      "catch-and-shoot two",
       "contested jumper",
       "bank shot",
     ],
@@ -982,7 +986,7 @@ app.get("/api/exp", (req, res) => {
   };
 
   let street = false;
-  const query = "SELECT * FROM stats";
+  const query = "SELECT * FROM playoff_stats";
 
   const shotTypeRanges: any = {
     paint: [1, 9],
@@ -1022,6 +1026,8 @@ app.get("/api/exp", (req, res) => {
       let snapshotAst = Math.round(row.ast);
       let snapshotOffReb = Math.round(row.offReb);
       let snapshotDefReb = Math.round(row.defReb);
+      let snapshotBlk = Math.round(row.blk);
+      let snapshotStl = Math.round(row.stl);
 
       for (let c = 0; c < twosAttempted; c++) {
         let shotType: any = calculateTwoCategoryProb(
@@ -1160,6 +1166,38 @@ app.get("/api/exp", (req, res) => {
         });
       }
 
+      for (let c = 0; c < snapshotStl; c++) {
+        playerShotLogs[row.gameId][player].push({
+          desc: `${player} steal`,
+          pts: 0,
+
+          ast: false,
+          defReb: false,
+          offReb: false,
+          stl: true,
+
+          make: false,
+          two: false,
+          player,
+        });
+      }
+
+      for (let c = 0; c < snapshotBlk; c++) {
+        playerShotLogs[row.gameId][player].push({
+          desc: `${player} with the block`,
+          pts: 0,
+
+          ast: false,
+          defReb: false,
+          offReb: false,
+          blk: true,
+
+          make: false,
+          two: false,
+          player,
+        });
+      }
+
       let shuffledPlayer = shuffleArray(playerShotLogs[row.gameId][player]);
 
       playerShotLogs[row.gameId][player] = shuffledPlayer;
@@ -1167,7 +1205,7 @@ app.get("/api/exp", (req, res) => {
 
     for (const gameId of Object.keys(playerShotLogs)) {
       let query =
-        "INSERT INTO game_feed2 (rel_id, playerName, desc, score, snapshotPts, snapshotAst, snapshotOffReb, snapshotDefReb, gameId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        "INSERT INTO game_feed (rel_id, playerName, desc, score, snapshotPts, snapshotAst, snapshotOffReb, snapshotDefReb, snapshotBlk, snapshotStl, gameId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
       let log = playerShotLogs[gameId];
       let flattened = flattenGameMap(log, gameId);
@@ -1175,12 +1213,16 @@ app.get("/api/exp", (req, res) => {
       let currAst: any = {};
       let currDefReb: any = {};
       let currOffReb: any = {};
+      let currBlk: any = {};
+      let currStl: any = {};
 
       for (const name of Object.keys(log)) {
         currPts[name] = 0;
         currAst[name] = 0;
         currDefReb[name] = 0;
         currOffReb[name] = 0;
+        currBlk[name] = 0;
+        currStl[name] = 0;
       }
 
       let twoAdd = street ? 1 : 2;
@@ -1194,6 +1236,10 @@ app.get("/api/exp", (req, res) => {
           currDefReb[entry.player] += 1;
         } else if (entry.offReb) {
           currOffReb[entry.player] += 1;
+        } else if (entry.stl) {
+          currStl[entry.player] += 1;
+        } else if (entry.blk) {
+          currBlk[entry.player] += 1;
         } else if (entry.make) {
           if (entry.two) {
             currPts[entry.player] += twoAdd;
@@ -1208,6 +1254,8 @@ app.get("/api/exp", (req, res) => {
         entry.ast = currAst[entry.player];
         entry.offReb = currDefReb[entry.player];
         entry.defReb = currOffReb[entry.player];
+        entry.stl = currStl[entry.player];
+        entry.blk = currBlk[entry.player];
         entry.rel_id = rel_id;
 
         rel_id++;
@@ -1226,6 +1274,8 @@ app.get("/api/exp", (req, res) => {
             entry.ast,
             entry.offReb,
             entry.defReb,
+            entry.blk,
+            entry.stl,
             entry.gameId,
           ],
           (err, rows) => {
@@ -1250,8 +1300,8 @@ app.get("/api/gameFeed", (req, res) => {
   // game_feed = playoffs
 
   const query = `SELECT * FROM ${
-    params.mode == "4v4" ? "game_feed" : "game_feed2"
-  } WHERE gameId = ?`;
+    params.mode != "2v2" ? "game_feed" : "game_feed2"
+  } WHERE gameId = ? ORDER BY rel_id DESC`;
   db.all(query, [params.gameId], (err, rows) => {
     if (err) {
       res.send({ err });

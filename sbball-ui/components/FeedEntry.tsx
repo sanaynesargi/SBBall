@@ -18,9 +18,9 @@ export const FeedEntry = ({
   stat2Num,
 }: FeedEntryProps) => {
   return (
-    <Box w="70%">
+    <Box w="80%">
       <HStack w="100%">
-        <Avatar name="Sanay" />
+        <Avatar name={name} />
         <VStack w="100%">
           <Text fontSize="15pt" fontWeight="bold">
             {description}
@@ -30,8 +30,9 @@ export const FeedEntry = ({
             <Text color="gray.500">·</Text>
             <Text color="gray.500">
               {stat1Num}
-              {stat1Name}, {stat2Name}
-              {stat2Name}
+              {" " + stat1Name}
+              {", " + stat2Num}
+              {" " + stat2Name}
             </Text>
           </HStack>
         </VStack>

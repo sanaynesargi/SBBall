@@ -37,7 +37,7 @@ export const BoxScoreEntry = ({
         // onOpen();
         const teamLength = team1.split(", ").length;
         const mode = `${teamLength}v${teamLength}`;
-        router.push(`/gameView?id=${gameId}&mode=${mode}`);
+        router.push(`/gameView?id=${gameId}&mode=${mode}&date=${date}`);
       }}
     >
       <VStack>
