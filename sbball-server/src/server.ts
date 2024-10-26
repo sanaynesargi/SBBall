@@ -235,6 +235,25 @@ app.get("/api/getPlayers", (_, res) => {
   });
 });
 
+app.get("/api/getPlayer", (req, res) => {
+  if (!req.query.player) {
+    return res.send({ error: "Invalid Request" });
+  }
+
+  const selectQuery = `
+  SELECT * FROM players WHERE playerName = ?
+`;
+
+  // Execute the query
+  db.all(selectQuery, [req.query.player], (err, rows) => {
+    if (err) {
+      return res.send({ error: err });
+    }
+
+    return res.send({ data: rows });
+  });
+});
+
 app.get("/api/deletePlayer", (req, res) => {
   if (!req.query.id) {
     return;

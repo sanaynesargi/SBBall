@@ -40,7 +40,6 @@ import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import axios from "axios";
 import { apiUrl } from "../../../utils/apiUrl.tsx";
 import { useRouter } from "next/navigation";
-import { query } from "express";
 import { BoxScoreEntry } from "../../../components/BoxScoreEntry.tsx";
 import { GameLogEntry } from "../../../components/GameLogEntry.tsx";
 import { Player } from "../../../components/Player.tsx";
