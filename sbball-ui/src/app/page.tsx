@@ -26,6 +26,11 @@ import {
   IconButton,
   Switch,
   UnorderedList,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
 } from "@chakra-ui/react";
 import { AddIcon, BellIcon, DeleteIcon, EditIcon } from "@chakra-ui/icons";
 import {
@@ -1104,9 +1109,24 @@ const Home = () => {
           FLS: {getFouls(2)}
         </Text>
       </HStack>
-      <VStack h="max(100vh, 100%)">
-        {!playoffs ? <PhonePlayerView /> : <MaxPlayerView />}
-      </VStack>
+      <Tabs variant="soft-rounded" colorScheme="green" size="sm">
+        <Center>
+          <TabList>
+            <Tab>Stats</Tab>
+            <Tab>Feed</Tab>
+          </TabList>
+        </Center>
+        <TabPanels>
+          <TabPanel>
+            <VStack h="max(100vh, 100%)">
+              {!playoffs ? <PhonePlayerView /> : <MaxPlayerView />}
+            </VStack>
+          </TabPanel>
+          <TabPanel>
+            <Text>Live Game Feed Update Coming Soon</Text>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
     </Layout>
   );
 };

@@ -419,16 +419,21 @@ app.post("/api/endGame", (req, res) => {
             }
           }
 
+          console.log(data.length, mode, averageFill);
           const insertQuery = `
           INSERT INTO ${
             mode == "2v2" ? "stats" : "playoff_stats"
           } (ast, blk, defReb, fouls, playerName, offReb, stl, threes, threesAttempted, tov, twos, twosAttempted, gameId ${
-            mode == "2v2" ? "" : ",fts"
+            mode == "2v2" ? "" : ", fts"
           })
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ${
+            mode == "2v2" ? "" : ", ?"
+          })
           `;
 
-          db.run(insertQuery, data);
+          db.all(insertQuery, data, (err, rows) => {
+            console.log(err);
+          });
         }
       });
     } catch (e) {
