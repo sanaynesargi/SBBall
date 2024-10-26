@@ -1,4 +1,5 @@
 // app/layout.tsx
+import { Suspense } from "react";
 import { Providers } from "./providers";
 
 export default function RootLayout({
@@ -9,7 +10,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <Suspense>{children}</Suspense>
+        </Providers>
       </body>
     </html>
   );
