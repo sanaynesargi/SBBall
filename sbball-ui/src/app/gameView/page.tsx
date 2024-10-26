@@ -26,6 +26,7 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import Layout from "../../../components/Layout";
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
@@ -153,65 +154,69 @@ const GameView = () => {
 
   return (
     <Layout>
-      <Center w="410px" pos="relative">
-        <HStack>
-          <Box>
-            <HStack pos="absolute" left={0} top={2}>
-              <Heading>
-                {Object.keys(boxScoreData).length > 0
-                  ? boxScoreData.team1Score
-                  : "..."}
-              </Heading>
-            </HStack>
-            <HStack pos="absolute" right={0} top={2}>
-              <Heading>
-                {Object.keys(boxScoreData).length > 0
-                  ? boxScoreData.team2Score
-                  : "..."}
-              </Heading>
-            </HStack>
-          </Box>
+      <Suspense>
+        <Center w="410px" pos="relative">
+          <HStack>
+            <Box>
+              <HStack pos="absolute" left={0} top={2}>
+                <Heading>
+                  {Object.keys(boxScoreData).length > 0
+                    ? boxScoreData.team1Score
+                    : "..."}
+                </Heading>
+              </HStack>
+              <HStack pos="absolute" right={0} top={2}>
+                <Heading>
+                  {Object.keys(boxScoreData).length > 0
+                    ? boxScoreData.team2Score
+                    : "..."}
+                </Heading>
+              </HStack>
+            </Box>
 
-          <VStack>
-            <Heading fontSize="15pt">Final</Heading>
-            <Text>{convertDate(date ?? "")}</Text>
-          </VStack>
-        </HStack>
-      </Center>
+            <VStack>
+              <Heading fontSize="15pt">Final</Heading>
+              <Text>{convertDate(date ?? "")}</Text>
+            </VStack>
+          </HStack>
+        </Center>
 
-      {/* Box Score */}
-      <Button onClick={onOpen}>View Box Score</Button>
-      {Object.keys(boxScoreData).length > 0 ? (
-        <BoxScoreDisplay
-          data={boxScoreData}
-          isOpen={isOpen}
-          onClose={onClose}
-          onOpen={onOpen}
-          key={1}
-        />
-      ) : null}
+        {/* Box Score */}
+        <Button onClick={onOpen}>View Box Score</Button>
+        {Object.keys(boxScoreData).length > 0 ? (
+          <BoxScoreDisplay
+            data={boxScoreData}
+            isOpen={isOpen}
+            onClose={onClose}
+            onOpen={onOpen}
+            key={1}
+          />
+        ) : null}
 
-      {/* Feed */}
-      <VStack w="100%">
-        {feedList.map((entry: any, index: number) => {
-          const feedData = getStatDataFromDesc(entry);
+        {/* Feed */}
+        <VStack w="100%">
+          {feedList.map((entry: any, index: number) => {
+            const feedData = getStatDataFromDesc(entry);
 
-          return (
-            <>
-              <FeedEntry
-                key={index}
-                name={entry.playerName}
-                description={entry.desc}
-                stat1Num={feedData.stat1Num}
-                stat1Name={feedData.stat1Name}
-                stat2Num={feedData.stat2Num != null ? feedData.stat2Num : ""}
-                stat2Name={feedData.stat2Name != null ? feedData.stat2Name : ""}
-              />
-              <Divider w="80%" />
-            </>
-          );
-        })}
-      </VStack>
+            return (
+              <>
+                <FeedEntry
+                  key={index}
+                  name={entry.playerName}
+                  description={entry.desc}
+                  stat1Num={feedData.stat1Num}
+                  stat1Name={feedData.stat1Name}
+                  stat2Num={feedData.stat2Num != null ? feedData.stat2Num : ""}
+                  stat2Name={
+                    feedData.stat2Name != null ? feedData.stat2Name : ""
+                  }
+                />
+                <Divider w="80%" />
+              </>
+            );
+          })}
+        </VStack>
+      </Suspense>
     </Layout>
   );
 };
