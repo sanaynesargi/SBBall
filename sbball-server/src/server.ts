@@ -564,7 +564,7 @@ app.get("/api/getPlayerGameLog", (req, res) => {
     const query = `SELECT playerName, (twos * 2) + (threes * 3) ${
       mode == "4v4" ? "+ (fts * 1)" : ""
     } AS pts, offReb, defReb, ast, blk, stl, tov,
-    twosAttempted, twos, threesAttempted, threes, date
+    twosAttempted, twos, threesAttempted, threes, date, rating
     FROM ${mode == "2v2" ? "stats" : "playoff_stats"} INNER JOIN games
    ON gameId=games.id WHERE playerCount = ? AND playerName = ?;`;
 
@@ -602,10 +602,10 @@ app.get("/api/getPlayerGameLog", (req, res) => {
 
           let impressiveIndex = calculateImpressiveIndex(obj, weights, avg);
           let topStats = getTopStats(obj, impressiveIndex);
-          let finalStats = { pts: obj.pts, ...topStats };
+          let finalStats = { pts: obj.pts, ...topStats, rating: row.rating };
 
           dataObj.push({ ...finalStats, date: obj.date });
-          dataFull.push(obj);
+          dataFull.push({ ...obj, rating: row.rating });
         }
 
         return res.send({

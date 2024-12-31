@@ -9,6 +9,7 @@ interface BoxScorePlayerProps {
   stl: number;
   blk: number;
   fg: number;
+  rtg: number;
 }
 
 export const BoxScorePlayer = ({
@@ -19,11 +20,12 @@ export const BoxScorePlayer = ({
   stl,
   blk,
   fg,
+  rtg,
 }: BoxScorePlayerProps) => {
   return (
     <VStack border="0.15px solid gray" borderRadius="md" px="15px" py="5px">
       <Text alignSelf="self-start" fontWeight="semibold">
-        {name}
+        {name} - {rtg.toFixed(2)}
       </Text>
       <HStack>
         <RealStatShort statName="pts" statNum={Math.round(pts)} sm />

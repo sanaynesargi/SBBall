@@ -78,6 +78,7 @@ export const BoxScoreDisplay = ({
                       blk={perf.blk}
                       stl={perf.stl}
                       fg={perf.fg}
+                      rtg={perf.rating}
                     />
                   );
                 })}

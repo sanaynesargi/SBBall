@@ -10,6 +10,7 @@ import {
   HStack,
   ModalFooter,
   Button,
+  Text,
 } from "@chakra-ui/react";
 import { RealStatShort } from "./RealStatShort";
 
@@ -34,7 +35,37 @@ export const FullStatDisplay = ({
         <ModalOverlay />
         <ModalContent bg="gray.800">
           <ModalHeader>
-            Box Score - {name}: {data["date"]}
+            <HStack>
+              <Text>{name} |</Text>
+              <Text
+                fontSize={"15pt"}
+                color={
+                  data["rating"] >= 5
+                    ? "yellow"
+                    : data["rating"] >= 10
+                    ? "greenyellow"
+                    : data["rating"] >= 15
+                    ? "green"
+                    : data["rating"] >= 20
+                    ? "lime"
+                    : data["rating"] >= 25
+                    ? "limegreen"
+                    : data["rating"] >= 30
+                    ? "forestgreen"
+                    : data["rating"] >= 35
+                    ? "mediumseagreen"
+                    : data["rating"] >= 40
+                    ? "seagreen"
+                    : data["rating"] >= 45
+                    ? "darkseagreen"
+                    : data["rating"] >= 50
+                    ? "mediumspringgreen"
+                    : "red"
+                }
+              >
+                {data["rating"].toFixed(2)}
+              </Text>
+            </HStack>
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
