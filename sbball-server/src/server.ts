@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import sqlite3 from "sqlite3";
 import { shotTendencies } from "./shotTendencies";
+import { calculateRating } from "./performanceRating";
 
 const app = express();
 const port = 8080;
@@ -154,6 +155,7 @@ db.serialize(() => {
       tov INTEGER,
       twos INTEGER,
       twosAttempted INTEGER,
+      rating FLOAT,
       gameId INTEGER
     )`);
 
@@ -172,6 +174,7 @@ db.serialize(() => {
       tov INTEGER,
       twos INTEGER,
       twosAttempted INTEGER,
+      rating FLOAT,
       gameId INTEGER
     )`);
 
@@ -309,6 +312,8 @@ app.post("/api/editPlayer", (req, res) => {
   }
 });
 
+// TODO: ADD PLAYER RATING CALCULATION to this endpoint
+// (v1 done) - will have to test
 app.post("/api/endGame", (req, res) => {
   const body = req.body.players;
   const averageFill = req.body.averageFill;
@@ -419,17 +424,35 @@ app.post("/api/endGame", (req, res) => {
             }
           }
 
-          console.log(data.length, mode, averageFill);
+          const formattedPerf = [
+            body[i].twos * 2 + body[i].threes * 3 + body[i].fts,
+            body[i].offReb,
+            body[i].defReb,
+            body[i].ast,
+            body[i].stl,
+            body[i].blk,
+            body[i].threes,
+            ((body[i].twos + body[i].threes) /
+              (body[i].threesAttempted + body[i].twosAttempted)) *
+              100,
+            (body[i].threes / body[i].threesAttempted) * 100,
+            body[i].tov,
+          ];
+
+          const rating = calculateRating(formattedPerf, mode == "4v4");
+
           const insertQuery = `
           INSERT INTO ${
             mode == "2v2" ? "stats" : "playoff_stats"
           } (ast, blk, defReb, fouls, playerName, offReb, stl, threes, threesAttempted, tov, twos, twosAttempted, gameId ${
             mode == "2v2" ? "" : ", fts"
-          })
+          }, rating)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ${
             mode == "2v2" ? "" : ", ?"
-          })
+          }, ?)
           `;
+
+          data.push(rating);
 
           db.all(insertQuery, data, (err, rows) => {
             console.log(err);
@@ -627,7 +650,7 @@ app.get("/api/getBoxScores", (req, res) => {
         mode != "2v2" ? "+ (fts * 1)" : ""
       }) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
         ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM,
-        (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp
+        (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp, rating
         FROM ${mode == "2v2" ? "stats" : "playoff_stats"}
         WHERE gameId=?
         GROUP BY playerName`;
@@ -697,7 +720,7 @@ app.get("/api/getBoxScore", (req, res) => {
         mode != "2v2" ? "+ (fts * 1)" : ""
       }) AS pts, AVG(offReb + defReb) AS reb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
         ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM,
-        (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp
+        (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp, rating
         FROM ${mode == "2v2" ? "stats" : "playoff_stats"}
         WHERE gameId=?
         GROUP BY playerName`;
@@ -1312,6 +1335,83 @@ app.get("/api/exp", (req, res) => {
 
   res.send({ yay: 1 });
 });
+
+app.get("/api/enterPerformanceRatings", (req, res) => {
+  return res.send({ deprecated: true });
+
+  const mode = req.query.mode;
+  const pc = mode == "2v2" ? 2 : 4;
+  const isPlayoff = mode == "2v2" ? false : true;
+
+  if (!mode) {
+    return res.send({ error: true, message: "Invalid Request" });
+  }
+
+  const playerQ = `SELECT * FROM games WHERE playerCount = ?`;
+
+  db.all(playerQ, [pc], (_, games: any[]) => {
+    if (!games || games.length === 0) {
+      return res.send({ error: true, message: "No games found" });
+    }
+
+    let dataObj: any = [];
+    let processedGames = 0;
+
+    for (const game of games) {
+      const gameId = game.id;
+
+      const gameQ = `SELECT id, playerName, AVG((twos * 2) + (threes * 3) ${
+        mode != "2v2" ? "+ (fts * 1)" : ""
+      }) AS pts, AVG(offReb) AS oreb, AVG(defReb) AS dreb, AVG(ast) as ast, AVG(blk) as blk, AVG(stl) as stl, AVG(tov) as tov,
+        ((TOTAL(twos) + TOTAL(threes)) / (TOTAL(twosAttempted) + TOTAL(threesAttempted))) as fg, AVG(twosAttempted) as tpfgA, AVG(twos) as tpfgM, AVG(threesAttempted) as ttpfgA, AVG(threes) as ttpfgM,
+        (TOTAL(threes)) / (TOTAL(threesAttempted)) as tp
+        FROM ${mode == "2v2" ? "stats" : "playoff_stats"}
+        WHERE gameId=?
+        GROUP BY playerName`;
+
+      db.all(gameQ, [gameId], (_, performances: any[]) => {
+        // if (performances.length === 0) {
+        //   return;
+        // }
+        processedGames++;
+
+        let game: any = [];
+        for (const perf of performances) {
+          // [pts, oreb, dreb, ast, stl, blk, 3pm, fg%, 3p%, to]
+          const formattedPerf = [
+            perf.pts,
+            perf.oreb,
+            perf.dreb,
+            perf.ast,
+            perf.stl,
+            perf.blk,
+            perf.tpfgM,
+            perf.fg * 100,
+            perf.tp * 100,
+            perf.tov,
+          ];
+
+          const rating = calculateRating(formattedPerf, isPlayoff);
+          const replaceId = perf.id;
+          const query = `UPDATE ${
+            isPlayoff ? "playoff_stats" : "stats"
+          } SET rating = ${rating} WHERE id = ${replaceId}`;
+
+          db.run(query);
+
+          game.push([formattedPerf, perf.playerName, rating]);
+        }
+        dataObj.push(game);
+
+        if (processedGames === games.length) {
+          res.send(dataObj);
+        }
+      });
+    }
+  });
+});
+
+/* DEPRECATED */
 
 app.get("/api/gameFeed", (req, res) => {
   const params = req.query;

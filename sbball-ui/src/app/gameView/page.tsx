@@ -26,7 +26,6 @@ import {
   useDisclosure,
 } from "@chakra-ui/react";
 import Layout from "../../../components/Layout";
-import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import axios from "axios";
