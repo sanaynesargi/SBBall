@@ -10,11 +10,13 @@ import {
   useToast,
   VStack,
   Button,
+  HStack,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import Layout from "../../../components/Layout.tsx";
 import axios from "axios";
 import { apiUrl } from "../../../utils/apiUrl.tsx";
+import Link from "next/link";
 
 const SortableTable = ({
   data,
@@ -238,22 +240,47 @@ const Home = () => {
   }, [mode]);
 
   return (
-    <Layout>
-      <Button
-        colorScheme="blue"
-        onClick={() => {
-          setMode(!mode);
-        }}
-      >
-        Game: {mode ? "Playoffs" : "Regular"}
-      </Button>
-      <SortableTable
-        data={tableData}
-        defaultSortColumn="pts"
-        defaultSortColumn2="fg"
-        defaultSortOrder="desc"
-      />
-    </Layout>
+    <>
+      <Layout>
+        <HStack justify="center" spacing={4} mb={6} mt={2}>
+          <Button
+            colorScheme="blue"
+            onClick={() => {
+              setMode(!mode);
+            }}
+          >
+            Game: {mode ? "Playoffs" : "Regular"}
+          </Button>
+          <Link href="/compare" passHref legacyBehavior>
+            <a
+              style={{
+                display: "inline-block",
+                background: "linear-gradient(90deg, #3182ce 0%, #2b6cb0 100%)",
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: 16,
+                borderRadius: 8,
+                padding: "10px 22px",
+                boxShadow: "0 2px 8px rgba(49,130,206,0.15)",
+                textDecoration: "none",
+                transition: "background 0.2s",
+                border: "none",
+                outline: "none",
+                cursor: "pointer",
+              }}
+            >
+              Compare Players
+            </a>
+          </Link>
+        </HStack>
+        <SortableTable
+          data={tableData}
+          defaultSortColumn="pts"
+          defaultSortColumn2="fg"
+          defaultSortOrder="desc"
+        />
+      </Layout>
+    </>
   );
 };
 
