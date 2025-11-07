@@ -17,7 +17,7 @@ RUN yarn install
 COPY . .
 
 # Build TypeScript
-RUN yarn global add typescript
+RUN yarn dlx typescript
 RUN yarn watch || tsc
 
 # Expose port
