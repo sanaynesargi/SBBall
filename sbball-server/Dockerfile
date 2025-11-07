@@ -4,18 +4,21 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
+# Install yarn globally
+RUN corepack enable && corepack prepare yarn@stable --activate
+
 # Copy package files
-COPY package*.json ./
+COPY package.json yarn.lock ./
 
 # Install dependencies
-RUN npm ci
+RUN yarn install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Build TypeScript
-RUN npm install -g typescript
-RUN npm run watch || tsc
+RUN yarn global add typescript
+RUN yarn watch || tsc
 
 # Expose port
 EXPOSE 8080
