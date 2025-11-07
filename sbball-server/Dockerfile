@@ -17,7 +17,7 @@ RUN yarn install
 COPY . .
 
 # Build TypeScript
-RUN yarn watch || tsc
+RUN yarn tsc
 
 # Expose port
 EXPOSE 8080
