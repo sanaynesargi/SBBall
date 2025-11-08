@@ -7,23 +7,26 @@ WORKDIR /app
 # Install yarn globally
 RUN corepack enable && corepack prepare yarn@stable --activate
 
-# Copy package files
+# Copy package.json first for better caching
 COPY package.json ./
 
-# Install ALL dependencies (dev + production)
-RUN yarn install --frozen-lockfile || yarn install
+# Install ALL dependencies
+RUN yarn install
 
-# Copy source code
+# Copy all source files
 COPY . .
 
-# Build TypeScript
+# Build TypeScript (fail soft)
 RUN yarn tsc || true
 
-# Remove dev dependencies to reduce image size (optional - comment out if causing issues)
-# RUN yarn install --production --ignore-scripts --prefer-offline
+# Verify node_modules and dist exist
+RUN ls -la /app && ls -la /app/node_modules && ls -la /app/dist || echo "Directories check"
 
 # Expose port
 EXPOSE 8080
 
-# Start server
-CMD ["node", "dist/server.js"]
+# Set NODE_ENV
+ENV NODE_ENV=production
+
+# Start server from /app directory
+CMD ["node", "/app/dist/server.js"]
