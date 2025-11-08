@@ -4,23 +4,26 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Install yarn globally
-RUN corepack enable && corepack prepare yarn@stable --activate
-
-# Copy package.json first for better caching
+# Copy package.json first
 COPY package.json ./
 
-# Install ALL dependencies
-RUN yarn install
+# Verify package.json exists
+RUN ls -la /app && cat package.json
+
+# Install dependencies with npm (more reliable than yarn in Docker)
+RUN npm install
+
+# Verify node_modules was created
+RUN ls -la /app/node_modules || (echo "ERROR: node_modules not created!" && exit 1)
 
 # Copy all source files
 COPY . .
 
 # Build TypeScript (fail soft)
-RUN yarn tsc || true
+RUN npx tsc || true
 
-# Verify node_modules and dist exist
-RUN ls -la /app && ls -la /app/node_modules && ls -la /app/dist || echo "Directories check"
+# Verify dist exists
+RUN ls -la /app/dist || echo "Warning: dist not created"
 
 # Expose port
 EXPOSE 8080
@@ -28,5 +31,5 @@ EXPOSE 8080
 # Set NODE_ENV
 ENV NODE_ENV=production
 
-# Start server from /app directory
-CMD ["node", "/app/dist/server.js"]
+# Start server
+CMD ["node", "dist/server.js"]
