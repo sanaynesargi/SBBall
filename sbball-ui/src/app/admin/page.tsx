@@ -44,7 +44,7 @@ const AdminPage = () => {
   useEffect(() => {
     const fetchPlayerData = async () => {
       const playerDataReq = await axios.get(
-        `http://${apiUrl}/api/getPlayerAverages?mode=${"4v4"}`
+        `${apiUrl}/api/getPlayerAverages?mode=${"4v4"}`
       );
 
       const error = playerDataReq.data.error;
@@ -125,7 +125,7 @@ const AdminPage = () => {
                   onClick={async () => {
                     // send request to server to insert player
                     const resp = await axios.post(
-                      `http://${apiUrl}/api/addAwards`,
+                      `${apiUrl}/api/addAwards`,
                       { awardData }
                     );
 

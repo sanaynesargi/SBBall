@@ -694,7 +694,7 @@ const Home = () => {
   const [playoffs, setPlayoffs] = useState(false);
 
   const createPlayers = async () => {
-    const playersReq = await axios.get(`http://${apiUrl}/api/getPlayers`);
+    const playersReq = await axios.get(`${apiUrl}/api/getPlayers`);
 
     if (playersReq.data.error) {
       toast({
@@ -986,7 +986,7 @@ const Home = () => {
                 w="100%"
                 onClick={async () => {
                   const endGameReq = await axios.post(
-                    `http://${apiUrl}/api/endGame`,
+                    `${apiUrl}/api/endGame`,
                     {
                       players: players,
                       winner: score1 > score2 ? 1 : score2 > score1 ? 2 : 0,

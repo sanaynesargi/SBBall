@@ -60,7 +60,7 @@ const AddPlayers = () => {
 
   useEffect(() => {
     const retrievePlayers = async () => {
-      const playerReq = await axios.get(`http://${apiUrl}/api/getPlayers`);
+      const playerReq = await axios.get(`${apiUrl}/api/getPlayers`);
       const error = playerReq.data.error;
 
       if (error) {
@@ -95,7 +95,7 @@ const AddPlayers = () => {
 
     const getData = async () => {
       const req = await axios.get(
-        `http://${apiUrl}/api/getPlayerGameLog?mode=${selectedMode}&playerName=${selectedPlayer}`
+        `${apiUrl}/api/getPlayerGameLog?mode=${selectedMode}&playerName=${selectedPlayer}`
       );
 
       const resp = req.data;
@@ -114,7 +114,7 @@ const AddPlayers = () => {
 
     const getData = async () => {
       const req = await axios.get(
-        `http://${apiUrl}/api/getBoxScores?mode=${boxScoreMode}`
+        `${apiUrl}/api/getBoxScores?mode=${boxScoreMode}`
       );
 
       const resp = req.data;

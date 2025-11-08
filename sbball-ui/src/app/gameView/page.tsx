@@ -114,7 +114,7 @@ const GameView = () => {
       }
 
       const resp = await axios.get(
-        `http://${apiUrl}/api/getBoxScore?mode=${mode}&gameId=${gameId}`
+        `${apiUrl}/api/getBoxScore?mode=${mode}&gameId=${gameId}`
       );
 
       const data = resp.data;
@@ -135,7 +135,7 @@ const GameView = () => {
   useEffect(() => {
     const fetchData = async () => {
       const resp = await axios.get(
-        `http://${apiUrl}/api/gameFeed?gameId=${gameId}&mode=${mode}`
+        `${apiUrl}/api/gameFeed?gameId=${gameId}&mode=${mode}`
       );
 
       const data = resp.data;

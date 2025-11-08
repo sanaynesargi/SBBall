@@ -217,7 +217,7 @@ const Home = () => {
   useEffect(() => {
     const fetchPlayerData = async () => {
       const playerDataReq = await axios.get(
-        `http://${apiUrl}/api/getPlayerAverages?mode=${mode ? "4v4" : "2v2"}`
+        `${apiUrl}/api/getPlayerAverages?mode=${mode ? "4v4" : "2v2"}`
       );
 
       const error = playerDataReq.data.error;

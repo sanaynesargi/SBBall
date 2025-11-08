@@ -185,7 +185,7 @@ const PlayerInfo = () => {
       }
 
       const playerDataReq = await axios.get(
-        `http://${apiUrl}/api/getPlayerAverages?mode=${mode ? "4v4" : "2v2"}`
+        `${apiUrl}/api/getPlayerAverages?mode=${mode ? "4v4" : "2v2"}`
       );
 
       const error = playerDataReq.data.error;
@@ -224,7 +224,7 @@ const PlayerInfo = () => {
 
     const fetchData = async () => {
       const playerDataReq = await axios.get(
-        `http://${apiUrl}/api/getAwards?player=${playerName}`
+        `${apiUrl}/api/getAwards?player=${playerName}`
       );
 
       const error = playerDataReq.data.error;
