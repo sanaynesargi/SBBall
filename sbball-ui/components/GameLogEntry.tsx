@@ -1,13 +1,39 @@
 import {
   useDisclosure,
-  Container,
-  Center,
+  Box,
   HStack,
   Avatar,
   Text,
 } from "@chakra-ui/react";
 import { FullStatDisplay } from "./FullStatDisplay";
 import { RealStat } from "./RealStat";
+
+// Preserves the original threshold chain (first match wins); maps the
+// legacy CSS color names onto theme tokens: mid -> yellow, high -> green,
+// low -> red.
+const ratingColor = (rating: number) => {
+  return rating >= 5
+    ? "warn.500"
+    : rating >= 10
+    ? "accent.400"
+    : rating >= 15
+    ? "accent.400"
+    : rating >= 20
+    ? "pos.500"
+    : rating >= 25
+    ? "pos.500"
+    : rating >= 30
+    ? "pos.500"
+    : rating >= 35
+    ? "pos.500"
+    : rating >= 40
+    ? "pos.500"
+    : rating >= 45
+    ? "pos.500"
+    : rating >= 50
+    ? "pos.500"
+    : "neg.500";
+};
 
 interface PlayerLogEntry {
   pts: number;
@@ -33,75 +59,66 @@ export const GameLogEntry = ({
   const { isOpen, onClose, onOpen } = useDisclosure();
 
   return (
-    <Container
+    <Box
       w="100%"
-      h="80px"
-      bg="#000000"
-      borderRadius="lg"
-      border="0.15px solid gray"
+      bg="bg.card"
+      borderRadius="card"
+      border="1px solid"
+      borderColor="border.subtle"
       position="relative"
-      _hover={{ cursor: "pointer" }}
+      px={{ base: 3, md: 5 }}
+      pt={6}
+      pb={3}
+      transition="all 0.15s ease"
+      _hover={{ cursor: "pointer", bg: "bg.hover", borderColor: "accent.500" }}
       onClick={onOpen}
     >
-      <Center w="100%" h="100%">
-        <HStack w="100%" h="100%">
-          <FullStatDisplay
-            data={fullData}
-            isOpen={isOpen}
-            onClose={onClose}
-            onOpen={onOpen}
-            name={name}
-          />
-          <Avatar bg="#191919" color="white" name={name} />
-          <HStack alignItems="center" justifyContent="center">
-            <RealStat statName="pts" statNum={pts} />
-            <RealStat statName={stat1} statNum={statNum1} />
-            <RealStat statName={stat2} statNum={statNum2} />
-            <Text
-              pos="absolute"
-              left={2}
-              top={0}
-              color="gray.300"
-              fontWeight="semibold"
-              fontSize="8pt"
-            >
-              {date}
-            </Text>
-            <Text
-              pos="absolute"
-              right={2}
-              top={0}
-              color={
-                fullData["rating"] >= 5
-                  ? "yellow"
-                  : fullData["rating"] >= 10
-                  ? "greenyellow"
-                  : fullData["rating"] >= 15
-                  ? "green"
-                  : fullData["rating"] >= 20
-                  ? "lime"
-                  : fullData["rating"] >= 25
-                  ? "limegreen"
-                  : fullData["rating"] >= 30
-                  ? "forestgreen"
-                  : fullData["rating"] >= 35
-                  ? "mediumseagreen"
-                  : fullData["rating"] >= 40
-                  ? "seagreen"
-                  : fullData["rating"] >= 45
-                  ? "darkseagreen"
-                  : fullData["rating"] >= 50
-                  ? "mediumspringgreen"
-                  : "red"
-              }
-              fontWeight="bold"
-              fontSize="11pt"
-            >
-              {fullData.rating.toFixed(2)}
-            </Text>
-          </HStack>
+      <FullStatDisplay
+        data={fullData}
+        isOpen={isOpen}
+        onClose={onClose}
+        onOpen={onOpen}
+        name={name}
+      />
+      <Text
+        pos="absolute"
+        left={3}
+        top={2}
+        color="text.muted"
+        fontWeight={700}
+        fontSize="2xs"
+        letterSpacing="0.04em"
+        textTransform="uppercase"
+      >
+        {date}
+      </Text>
+      <Text
+        pos="absolute"
+        right={3}
+        top={2}
+        color={ratingColor(fullData["rating"])}
+        fontFamily="heading"
+        fontWeight={900}
+        fontSize={{ base: "sm", md: "md" }}
+      >
+        {fullData.rating.toFixed(2)}
+      </Text>
+      <HStack
+        w="100%"
+        spacing={{ base: 3, md: 4 }}
+        align="center"
+      >
+        <Avatar bg="bg.hover" color="text.primary" name={name} />
+        <HStack
+          flex="1"
+          spacing={{ base: 2, md: 5 }}
+          justify={{ base: "space-around", md: "flex-start" }}
+        >
+          <RealStat statName="pts" statNum={pts} />
+          <RealStat statName={stat1} statNum={statNum1} />
+          <RealStat statName={stat2} statNum={statNum2} />
         </HStack>
-      </Center>
-    </Container>
+      </HStack>
+    </Box>
   );
 };

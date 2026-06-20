@@ -1,29 +1,20 @@
 "use client";
 import {
-  Table,
-  Thead,
-  Tr,
-  Th,
-  Tbody,
-  Td,
-  useTab,
   useToast,
   VStack,
   Text,
-  Button,
   Avatar,
   Heading,
   HStack,
-  Container,
-  Center,
   Box,
+  Flex,
+  SimpleGrid,
   Divider,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import Layout from "../../../components/Layout.tsx";
 import axios from "axios";
 import { apiUrl } from "../../../utils/apiUrl.tsx";
-import { useRouter } from "next/navigation";
 
 interface StatBoxProps {
   statName: string;
@@ -36,84 +27,97 @@ interface PlayerAwardProps {
   timesWon: number;
 }
 
-const calcColor = (stat: string, statNum: number) => {
+// Tier -> theme color. Preserves the original green/yellow/cyan/red thresholds.
+const TIERS: Record<string, { bg: string; fg: string }> = {
+  great: { bg: "accent.500", fg: "accent.fg" },
+  good: { bg: "warn.500", fg: "#1A1400" },
+  ok: { bg: "team1.500", fg: "#04121F" },
+  low: { bg: "neg.500", fg: "#FFFFFF" },
+};
+
+const calcTier = (stat: string, statNum: number): string => {
   if (stat == "pts") {
-    return statNum >= 15
-      ? "green"
-      : statNum >= 10
-      ? "yellow"
-      : statNum >= 5
-      ? "cyan"
-      : "red";
+    return statNum >= 15 ? "great" : statNum >= 10 ? "good" : statNum >= 5 ? "ok" : "low";
   } else if (stat == "reb") {
-    return statNum >= 10
-      ? "green"
-      : statNum >= 7
-      ? "yellow"
-      : statNum >= 3
-      ? "cyan"
-      : "red";
+    return statNum >= 10 ? "great" : statNum >= 7 ? "good" : statNum >= 3 ? "ok" : "low";
   } else if (stat == "ast") {
-    return statNum >= 5
-      ? "green"
-      : statNum >= 4
-      ? "yellow"
-      : statNum >= 2
-      ? "cyan"
-      : "red";
+    return statNum >= 5 ? "great" : statNum >= 4 ? "good" : statNum >= 2 ? "ok" : "low";
   } else if (stat == "stl") {
-    return statNum >= 2
-      ? "green"
-      : statNum >= 1
-      ? "yellow"
-      : statNum >= 0.5
-      ? "cyan"
-      : "red";
+    return statNum >= 2 ? "great" : statNum >= 1 ? "good" : statNum >= 0.5 ? "ok" : "low";
   } else if (stat == "blk") {
-    return statNum >= 2
-      ? "green"
-      : statNum >= 1
-      ? "yellow"
-      : statNum >= 0.5
-      ? "cyan"
-      : "red";
+    return statNum >= 2 ? "great" : statNum >= 1 ? "good" : statNum >= 0.5 ? "ok" : "low";
   }
+  return "low";
 };
 
 const StatBox = ({ rank, statName, statNum }: StatBoxProps) => {
+  const tier = TIERS[calcTier(statName, statNum)];
   return (
-    <Button
-      w="75px"
-      h="75px"
-      colorScheme={calcColor(statName, statNum)}
-      borderRadius="md"
+    <Flex
+      direction="column"
+      align="center"
+      justify="center"
+      borderRadius="tile"
+      bg={tier.bg}
+      color={tier.fg}
+      py={4}
+      gap={0.5}
+      boxShadow="0 6px 20px rgba(0,0,0,0.25)"
     >
-      <VStack
-        w="100%"
-        h="100%"
-        alignItems="center"
-        justifyContent="center"
-        spacing="2px"
-      >
-        <Heading fontSize="18pt">{statNum.toFixed(1)}</Heading>
-        <Heading fontSize="10pt" color="gray.700">
-          {statName.toUpperCase()}
-        </Heading>
-        <Heading fontSize="10pt" color="gray.700">
-          #{rank}
-        </Heading>
-      </VStack>
-    </Button>
+      <Heading fontFamily="heading" fontSize={{ base: "2xl", md: "3xl" }} lineHeight={1}>
+        {statNum.toFixed(1)}
+      </Heading>
+      <Text fontSize="xs" fontWeight={800} letterSpacing="0.08em" opacity={0.85}>
+        {statName.toUpperCase()}
+      </Text>
+      <Text fontSize="xs" fontWeight={700} opacity={0.6}>
+        #{rank}
+      </Text>
+    </Flex>
   );
 };
 
 const PlayerAward = ({ awardName, timesWon }: PlayerAwardProps) => {
   return (
-    <Button h="50px" w="70%" colorScheme="yellow">
-      <Text fontWeight="bold">
-        {awardName} ({timesWon}x)
+    <Flex
+      w="100%"
+      align="center"
+      gap={3}
+      bg="bg.card"
+      border="1px solid"
+      borderColor="border.subtle"
+      borderRadius="tile"
+      px={4}
+      py={3}
+    >
+      <Flex
+        w="36px"
+        h="36px"
+        align="center"
+        justify="center"
+        borderRadius="10px"
+        bg="warn.500"
+        color="#1A1400"
+        fontSize="18px"
+        flexShrink={0}
+      >
+        🏆
+      </Flex>
+      <Text fontWeight={700} flex="1">
+        {awardName}
       </Text>
-    </Button>
+      <Box
+        px={2.5}
+        py={1}
+        borderRadius="full"
+        bg="bg.hover"
+        color="text.muted"
+        fontSize="xs"
+        fontWeight={800}
+      >
+        {timesWon}×
+      </Box>
+    </Flex>
   );
 };
 
@@ -141,6 +145,40 @@ const calcRank = (data: any[], stat: string, playerName: string) => {
 
   return -1;
 };
+
+const ModeToggle = ({ mode, onToggle }: { mode: boolean; onToggle: () => void }) => (
+  <Flex
+    bg="bg.surface"
+    border="1px solid"
+    borderColor="border.subtle"
+    borderRadius="full"
+    p={1}
+    gap={1}
+  >
+    {[
+      { label: "Regular", active: !mode },
+      { label: "Playoffs", active: mode },
+    ].map((opt) => (
+      <Flex
+        key={opt.label}
+        px={4}
+        h="32px"
+        align="center"
+        borderRadius="full"
+        cursor="pointer"
+        fontWeight={700}
+        fontSize="sm"
+        color={opt.active ? "accent.fg" : "text.muted"}
+        bg={opt.active ? "accent.500" : "transparent"}
+        onClick={() => {
+          if (!opt.active) onToggle();
+        }}
+      >
+        {opt.label}
+      </Flex>
+    ))}
+  </Flex>
+);
 
 const PlayerInfo = () => {
   const [mode, setMode] = useState(false);
@@ -247,53 +285,85 @@ const PlayerInfo = () => {
     fetchData();
   }, [playerName]);
 
+  const statKeys = Object.keys(playerData).filter((key) =>
+    ["pts", "reb", "ast", "stl", "blk"].includes(key)
+  );
+
   return (
     <Layout>
-      <VStack>
-        <Avatar size="lg" name={playerName} bg="teal" />
-        <Heading>{playerName}</Heading>
-        <HStack>
-          <Heading fontSize="11pt">
-            {height} • #{playerNum} {pos}
-          </Heading>
-          <Button size="sm" onClick={() => setMode(!mode)} colorScheme="blue">
-            Mode: {mode ? "Playoffs" : "Regular"}
-          </Button>
-        </HStack>
-        <HStack>
-          {Object.keys(playerData).map((key, index) => {
-            if (!["pts", "reb", "ast", "stl", "blk"].includes(key)) {
-              return;
-            }
+      <Box maxW="640px" mx="auto">
+        {/* Profile header */}
+        <Flex
+          direction={{ base: "column", sm: "row" }}
+          align={{ base: "center", sm: "center" }}
+          gap={4}
+          bg="bg.card"
+          border="1px solid"
+          borderColor="border.subtle"
+          borderRadius="card"
+          p={{ base: 5, md: 6 }}
+          textAlign={{ base: "center", sm: "left" }}
+        >
+          <Avatar
+            size="xl"
+            name={playerName}
+            bg="bg.hover"
+            color="text.primary"
+            border="2px solid"
+            borderColor="accent.500"
+          />
+          <Box flex="1">
+            <Heading fontSize={{ base: "2xl", md: "3xl" }}>{playerName}</Heading>
+            <Text color="text.muted" mt={1} fontWeight={600}>
+              {height} • #{playerNum} • {pos}
+            </Text>
+          </Box>
+          <ModeToggle mode={mode} onToggle={() => setMode(!mode)} />
+        </Flex>
 
-            return (
-              <StatBox
-                rank={calcRank(tableData, key, playerName)}
-                statName={key}
-                statNum={playerData[key as any]}
+        {/* Stat tiles */}
+        <SimpleGrid columns={{ base: 3, sm: 5 }} spacing={3} mt={5}>
+          {statKeys.map((key, index) => (
+            <StatBox
+              rank={calcRank(tableData, key, playerName)}
+              statName={key}
+              statNum={playerData[key as any]}
+              key={index}
+            />
+          ))}
+        </SimpleGrid>
+
+        <Divider my={7} borderColor="border.subtle" />
+
+        {/* Awards */}
+        <Heading size="md" mb={4}>
+          Awards & Accolades
+        </Heading>
+        {awardsData.length === 0 ? (
+          <Flex
+            h="100px"
+            align="center"
+            justify="center"
+            color="text.faint"
+            bg="bg.card"
+            border="1px solid"
+            borderColor="border.subtle"
+            borderRadius="card"
+          >
+            No awards yet.
+          </Flex>
+        ) : (
+          <VStack w="100%" spacing={2.5} align="stretch">
+            {awardsData.map((entry: any, index) => (
+              <PlayerAward
+                awardName={entry[0]}
+                timesWon={entry[2]}
                 key={index}
               />
-            );
-          })}
-        </HStack>
-        <Divider my={5} />
-        <VStack w="100%" h="100%">
-          <Heading size="md" h="100%">
-            Awards & Accolades
-          </Heading>
-          <VStack w="100%" h="100%">
-            {awardsData.map((entry: any, index) => {
-              return (
-                <PlayerAward
-                  awardName={entry[0]}
-                  timesWon={entry[2]}
-                  key={index}
-                />
-              );
-            })}
+            ))}
           </VStack>
-        </VStack>
-      </VStack>
+        )}
+      </Box>
     </Layout>
   );
 };

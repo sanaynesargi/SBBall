@@ -18,17 +18,40 @@ export const FeedEntry = ({
   stat2Num,
 }: FeedEntryProps) => {
   return (
-    <Box w="80%">
-      <HStack w="100%">
-        <Avatar name={name} />
-        <VStack w="100%">
-          <Text fontSize="15pt" fontWeight="bold">
+    <Box
+      w="100%"
+      bg="bg.card"
+      borderRadius="card"
+      border="1px solid"
+      borderColor="border.subtle"
+      px={{ base: 3, md: 5 }}
+      py={4}
+    >
+      <HStack w="100%" align="flex-start" spacing={{ base: 3, md: 4 }}>
+        <Avatar bg="bg.hover" color="text.primary" name={name} />
+        <VStack w="100%" align="flex-start" spacing={1}>
+          <Text
+            fontFamily="heading"
+            fontSize={{ base: "md", md: "lg" }}
+            fontWeight={800}
+            color="text.primary"
+          >
             {description}
           </Text>
-          <HStack>
-            <Text>{name}</Text>
-            <Text color="gray.500">·</Text>
-            <Text color="gray.500">
+          <HStack
+            spacing={2}
+            color="text.muted"
+            fontSize={{ base: "xs", md: "sm" }}
+          >
+            <Text color="text.primary" fontWeight={700}>
+              {name}
+            </Text>
+            <Text color="text.faint">·</Text>
+            <Text
+              letterSpacing="0.04em"
+              textTransform="uppercase"
+              fontWeight={600}
+            >
               {stat1Num}
               {" " + stat1Name}
               {", " + stat2Num}

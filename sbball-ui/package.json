@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:migrate": "node --env-file=.env.local scripts/migrate-to-neon.mjs"
   },
   "dependencies": {
     "@chakra-ui/descendant": "^3.1.0",
@@ -16,6 +17,7 @@
     "@chakra-ui/react-utils": "^2.0.12",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
+    "@neondatabase/serverless": "^1.1.0",
     "axios": "^1.6.8",
     "chakra-ui-bottom-navigation": "^2.0.1",
     "framer-motion": "^11.1.7",

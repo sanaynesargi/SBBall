@@ -41,11 +41,15 @@ export const BoxScoreDisplay = ({
     <Box>
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent bg="gray.800">
-          <ModalHeader>Box Score</ModalHeader>
+        <ModalContent>
+          <ModalHeader fontFamily="heading" fontWeight={800}>
+            Box Score
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <Select
+              bg="bg.surface"
+              borderColor="border.subtle"
               defaultValue={team1Form}
               onChange={(e) => setSelectedTeam(e.target.value)}
             >
@@ -53,7 +57,7 @@ export const BoxScoreDisplay = ({
               <option value={team2Form}>{team2Form}</option>
             </Select>
             <Center mt="15px">
-              <VStack>
+              <VStack w="100%" spacing={3}>
                 {sortedPerfs.map((perf: any, index: number) => {
                   if (
                     selectedTeam == team1Form &&
@@ -87,7 +91,7 @@ export const BoxScoreDisplay = ({
           </ModalBody>
 
           <ModalFooter>
-            <Button colorScheme="blue" onClick={onClose}>
+            <Button variant="accent" onClick={onClose}>
               Close
             </Button>
           </ModalFooter>

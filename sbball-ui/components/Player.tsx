@@ -1,11 +1,11 @@
 import { DeleteIcon } from "@chakra-ui/icons";
 import {
   useToast,
-  Container,
-  Center,
+  Box,
   HStack,
   Avatar,
   Heading,
+  Text,
   IconButton,
 } from "@chakra-ui/react";
 import axios from "axios";
@@ -44,57 +44,101 @@ export const Player = ({
   const router = useRouter();
 
   return (
-    <Container
+    <Box
       w="100%"
-      h="100px"
-      bg="#279AF1"
-      borderRadius="lg"
+      bg="bg.card"
+      borderRadius="card"
+      border="1px solid"
+      borderColor="border.subtle"
       position="relative"
+      overflow="hidden"
+      px={{ base: 3, md: 5 }}
+      py={4}
+      _before={{
+        content: '""',
+        position: "absolute",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: "4px",
+        bg: "accent.500",
+      }}
     >
-      <Center w="100%" h="100%">
-        <HStack w="100%" h="100%">
-          <Avatar bg="#191919" color="white" name={name} />
-          <HStack w="100%" alignItems="center" justifyContent="center">
-            <Heading fontSize="15pt">{height}</Heading>
-            <Heading fontSize="15pt">•</Heading>
-            <Heading
-              fontSize="15pt"
-              _hover={{ textDecor: "underline", cursor: "pointer" }}
-              onClick={() =>
-                router.push(
-                  `/playerInfo?name=${name}&height=${
-                    height[0] + "|" + height[2]
-                  }&num=${jersey}&pos=${`${position}${
-                    secPosition ? `/${secPosition}` : ""
-                  }`}`
-                )
-              }
-            >
-              {name}
-            </Heading>
-            <Heading fontSize="15pt">•</Heading>
-            <Heading fontSize="15pt">
-              #{jersey} {position}
-              {secPosition ? `/${secPosition}` : null}
-            </Heading>
-            {dev ? (
-              <>
-                <PlayerEditModal
-                  index={index}
-                  players={players}
-                  setPlayers={setPlayers}
-                />
-                <IconButton
-                  icon={<DeleteIcon />}
-                  aria-label="delete"
-                  colorScheme="red"
-                  onClick={async () => {
+      <HStack
+        w="100%"
+        spacing={{ base: 3, md: 4 }}
+        align="center"
+        flexWrap={{ base: "wrap", md: "nowrap" }}
+      >
+        <Avatar bg="bg.hover" color="text.primary" name={name} />
+        <HStack
+          flex="1"
+          minW={0}
+          spacing={{ base: 2, md: 3 }}
+          align="center"
+          divider={
+            <Text color="text.faint" px={1}>
+              •
+            </Text>
+          }
+        >
+          <Text
+            color="text.muted"
+            fontSize={{ base: "xs", md: "sm" }}
+            fontWeight={700}
+            letterSpacing="0.04em"
+            whiteSpace="nowrap"
+          >
+            {height}
+          </Text>
+          <Heading
+            fontFamily="heading"
+            fontWeight={800}
+            fontSize={{ base: "md", md: "lg" }}
+            color="text.primary"
+            isTruncated
+            _hover={{ color: "accent.400", cursor: "pointer" }}
+            onClick={() =>
+              router.push(
+                `/playerInfo?name=${name}&height=${
+                  height[0] + "|" + height[2]
+                }&num=${jersey}&pos=${`${position}${
+                  secPosition ? `/${secPosition}` : ""
+                }`}`
+              )
+            }
+          >
+            {name}
+          </Heading>
+          <Text
+            color="text.muted"
+            fontSize={{ base: "xs", md: "sm" }}
+            fontWeight={700}
+            whiteSpace="nowrap"
+          >
+            #{jersey} {position}
+            {secPosition ? `/${secPosition}` : null}
+          </Text>
+        </HStack>
+        {dev ? (
+          <HStack spacing={2}>
+            <PlayerEditModal
+              index={index}
+              players={players}
+              setPlayers={setPlayers}
+            />
+            <IconButton
+              icon={<DeleteIcon />}
+              aria-label="delete"
+              colorScheme="red"
+              size="sm"
+              onClick={async () => {
                     let newP = players.slice();
                     let name = players[index].name;
                     let id = players[index].id;
 
                     const delReq = await axios.get(
-                      `http://${apiUrl}/api/deletePlayer?id=${id}`
+                      `${apiUrl}/api/deletePlayer?id=${id}`
                     );
 
                     const error = delReq.data.error;
@@ -121,11 +165,9 @@ export const Player = ({
                     }
                   }}
                 />
-              </>
-            ) : null}
           </HStack>
-        </HStack>
-      </Center>
-    </Container>
+        ) : null}
+      </HStack>
+    </Box>
   );
 };

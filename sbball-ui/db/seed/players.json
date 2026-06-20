@@ -1,0 +1,8 @@
+[{"id":1,"playerName":"Sanay","jersey":21,"position":"C","secPosition":"PF","height":"6’3”","nickname":"DeMar "},
+{"id":2,"playerName":"Aarav","jersey":22,"position":"SF","secPosition":"SG","height":"5'9\"","nickname":"Jelly"},
+{"id":3,"playerName":"Ansuman","jersey":0,"position":"SF","secPosition":"","height":"5'8\"","nickname":""},
+{"id":4,"playerName":"Arav","jersey":11,"position":"PG","secPosition":"SG","height":"5'9\"","nickname":""},
+{"id":5,"playerName":"Ahan","jersey":42,"position":"SF","secPosition":"SG","height":"5'8\"","nickname":""},
+{"id":6,"playerName":"Viraaj","jersey":69,"position":"C","secPosition":"","height":"6'3\"","nickname":"Shaq"},
+{"id":7,"playerName":"Cyrus","jersey":6,"position":"SF","secPosition":"PG","height":"5’3”","nickname":""},
+{"id":8,"playerName":"Advik","jersey":1,"position":"SG","secPosition":"","height":"5'3\"","nickname":""}]

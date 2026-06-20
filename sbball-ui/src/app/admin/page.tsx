@@ -3,10 +3,11 @@
 import {
   Box,
   Button,
-  Center,
+  Flex,
   HStack,
-  Input,
+  Heading,
   Select,
+  Stack,
   VStack,
   useToast,
   Text,
@@ -17,6 +18,13 @@ import { useEffect, useReducer, useState } from "react";
 import axios from "axios";
 import { apiUrl } from "../../../utils/apiUrl";
 import { DeleteIcon } from "@chakra-ui/icons";
+
+const selectStyles = {
+  bg: "bg.surface",
+  borderColor: "border.subtle",
+  color: "text.primary",
+  _hover: { borderColor: "accent.500" },
+} as const;
 
 const AdminPage = () => {
   const dev = process.env.NODE_ENV == "development";
@@ -72,10 +80,26 @@ const AdminPage = () => {
   return (
     <Layout>
       {dev ? (
-        <Box>
-          <VStack spacing={3}>
-            <HStack>
+        <Box maxW="640px" mx="auto">
+          <Heading fontSize={{ base: "2xl", md: "3xl" }} mb={1}>
+            Award Manager
+          </Heading>
+          <Text color="text.muted" fontSize="sm" mb={6}>
+            Dev-only tool for assigning player accolades.
+          </Text>
+
+          <VStack
+            spacing={4}
+            align="stretch"
+            bg="bg.card"
+            border="1px solid"
+            borderColor="border.subtle"
+            borderRadius="card"
+            p={{ base: 4, md: 5 }}
+          >
+            <Stack direction={{ base: "column", sm: "row" }} spacing={3}>
               <Select
+                {...selectStyles}
                 placeholder="Select Player ..."
                 onChange={(e) => {
                   setSelectedPlayer(e.target.value);
@@ -90,6 +114,7 @@ const AdminPage = () => {
                 })}
               </Select>
               <Select
+                {...selectStyles}
                 placeholder="Select Award ..."
                 onChange={(e) => {
                   setSelectedAward(e.target.value);
@@ -103,94 +128,99 @@ const AdminPage = () => {
                   );
                 })}
               </Select>
+            </Stack>
+
+            <HStack justify="flex-end" spacing={3}>
+              <Button
+                variant="surface"
+                isDisabled={!selectedAward || !selectedPlayer}
+                onClick={() => {
+                  let old = awardData;
+                  old.push([selectedPlayer, selectedAward]);
+
+                  setAwardData(old);
+
+                  forceUpdate();
+                }}
+              >
+                Add to Batch
+              </Button>
+              <Button
+                variant="accent"
+                isDisabled={awardData.length === 0}
+                onClick={async () => {
+                  const resp = await axios.post(`${apiUrl}/api/addAwards`, {
+                    awardData,
+                  });
+
+                  const error = resp.data.error;
+
+                  if (error) {
+                    toast({
+                      title: "Error!",
+                      description: `An error has occured. Please try again later`,
+                      status: "error",
+                      duration: 3000,
+                      isClosable: true,
+                    });
+                  } else {
+                    toast({
+                      title: "Sucess!",
+                      description: `Awards added successfully.`,
+                      status: "success",
+                      duration: 3000,
+                      isClosable: true,
+                    });
+
+                    setAwardData([]);
+                  }
+                }}
+              >
+                Send Awards
+              </Button>
             </HStack>
-            <Center>
-              <HStack>
-                <Button
-                  isDisabled={!selectedAward || !selectedPlayer}
-                  colorScheme="blue"
-                  onClick={() => {
-                    let old = awardData;
-                    old.push([selectedPlayer, selectedAward]);
+          </VStack>
 
-                    setAwardData(old);
-
-                    forceUpdate();
-                  }}
-                >
-                  Add Award
-                </Button>
-                <Button
-                  colorScheme="green"
-                  onClick={async () => {
-                    // send request to server to insert player
-                    const resp = await axios.post(
-                      `${apiUrl}/api/addAwards`,
-                      { awardData }
-                    );
-
-                    const error = resp.data.error;
-
-                    if (error) {
-                      toast({
-                        title: "Error!",
-                        description: `An error has occured. Please try again later`,
-                        status: "error",
-                        duration: 3000,
-                        isClosable: true,
-                      });
-                    } else {
-                      toast({
-                        title: "Sucess!",
-                        description: `Awards added successfully.`,
-                        status: "success",
-                        duration: 3000,
-                        isClosable: true,
-                      });
-
-                      setAwardData([]);
-                    }
-                  }}
-                >
-                  Send Awards
-                </Button>
-              </HStack>
-            </Center>
-            <VStack w="100%">
+          {awardData.length > 0 && (
+            <VStack w="100%" spacing={2.5} align="stretch" mt={5}>
               {awardData.map((val: any, index: number) => {
                 return (
-                  <Button
-                    w="80%"
-                    h="45px"
-                    colorScheme="blue"
+                  <Flex
                     key={index}
-                    pos="relative"
-                    _hover={{ colorScheme: "blue" }}
+                    align="center"
+                    gap={3}
+                    bg="bg.card"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    borderRadius="tile"
+                    px={4}
+                    py={3}
                   >
-                    <HStack>
-                      <Text>
-                        {val[0]}: {val[1]}
-                      </Text>
-                      <IconButton
-                        pos="absolute"
-                        right={0}
-                        colorScheme="red"
-                        aria-label={"trash"}
-                        icon={<DeleteIcon />}
-                        onClick={() => {
-                          let newA: any = awardData;
-                          newA.splice(index, 1);
+                    <Text fontWeight={700} flex="1">
+                      <Box as="span" color="accent.400">
+                        {val[0]}
+                      </Box>{" "}
+                      — {val[1]}
+                    </Text>
+                    <IconButton
+                      size="sm"
+                      colorScheme="red"
+                      variant="ghost"
+                      aria-label="remove"
+                      icon={<DeleteIcon />}
+                      onClick={() => {
+                        let newA: any = awardData;
+                        newA.splice(index, 1);
 
-                          setAwardData(newA);
-                          forceUpdate();
-                        }}
-                      />
-                    </HStack>
-                  </Button>
+                        setAwardData(newA);
+                        forceUpdate();
+                      }}
+                    />
+                  </Flex>
                 );
               })}
             </VStack>
-          </VStack>
+          )}
         </Box>
       ) : null}
     </Layout>

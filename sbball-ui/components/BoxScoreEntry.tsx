@@ -1,4 +1,4 @@
-import { Center, VStack, HStack, Text } from "@chakra-ui/react";
+import { Box, VStack, HStack, Text } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 
 interface BoxScoreEntryProps {
@@ -25,12 +25,16 @@ export const BoxScoreEntry = ({
   const router = useRouter();
 
   return (
-    <Center
-      border="0.30px solid gray"
-      px="25px"
-      py="10px"
-      borderRadius="md"
-      _hover={{ cursor: "pointer" }}
+    <Box
+      w="100%"
+      bg="bg.card"
+      borderRadius="card"
+      border="1px solid"
+      borderColor="border.subtle"
+      px={{ base: 4, md: 6 }}
+      py={4}
+      transition="all 0.15s ease"
+      _hover={{ cursor: "pointer", bg: "bg.hover", borderColor: "accent.500" }}
       pos="relative"
       onClick={() => {
         // setIndexNumber(index);
@@ -40,22 +44,57 @@ export const BoxScoreEntry = ({
         router.push(`/gameView?id=${gameId}&mode=${mode}&date=${date}`);
       }}
     >
-      <VStack>
-        <Text>{team1}</Text>
-        <HStack>
-          <Text fontWeight={score1 >= score2 ? "bold" : "thin"} fontSize="25pt">
+      <VStack spacing={2}>
+        <Text
+          color="text.muted"
+          fontSize={{ base: "xs", md: "sm" }}
+          fontWeight={700}
+          letterSpacing="0.04em"
+          textAlign="center"
+        >
+          {team1}
+        </Text>
+        <HStack align="baseline" spacing={3}>
+          <Text
+            fontFamily="heading"
+            fontWeight={score1 >= score2 ? 900 : 400}
+            color={score1 >= score2 ? "text.primary" : "text.muted"}
+            fontSize={{ base: "3xl", md: "4xl" }}
+            lineHeight={1}
+          >
             {score1}
           </Text>
-          <Text>-</Text>
-          <Text fontWeight={score2 >= score1 ? "bold" : "thin"} fontSize="25pt">
+          <Text color="text.faint" fontSize="xl">
+            -
+          </Text>
+          <Text
+            fontFamily="heading"
+            fontWeight={score2 >= score1 ? 900 : 400}
+            color={score2 >= score1 ? "text.primary" : "text.muted"}
+            fontSize={{ base: "3xl", md: "4xl" }}
+            lineHeight={1}
+          >
             {score2}
           </Text>
         </HStack>
-        <Text>{team2}</Text>
-        <Text fontSize="11pt" color="gray.500">
+        <Text
+          color="text.muted"
+          fontSize={{ base: "xs", md: "sm" }}
+          fontWeight={700}
+          letterSpacing="0.04em"
+          textAlign="center"
+        >
+          {team2}
+        </Text>
+        <Text
+          fontSize="2xs"
+          color="text.faint"
+          letterSpacing="0.04em"
+          textTransform="uppercase"
+        >
           {date}
         </Text>
       </VStack>
-    </Center>
+    </Box>
   );
 };

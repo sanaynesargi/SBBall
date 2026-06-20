@@ -1,14 +1,13 @@
 "use client";
 import {
-  Flex,
   Box,
+  Flex,
   Text,
   Heading,
   Center,
   VStack,
   HStack,
-  position,
-  Container,
+  SimpleGrid,
   useDisclosure,
   Button,
   Modal,
@@ -21,26 +20,17 @@ import {
   FormControl,
   FormLabel,
   Input,
-  Spacer,
   useToast,
   IconButton,
   Switch,
-  UnorderedList,
   Tab,
   TabList,
   TabPanel,
   TabPanels,
   Tabs,
 } from "@chakra-ui/react";
-import { AddIcon, BellIcon, DeleteIcon, EditIcon } from "@chakra-ui/icons";
-import {
-  BottomNavigation,
-  BottomNavigationItem,
-  BottomNavigationIcon,
-  BottomNavigationLabel,
-  BottomNavigationStyleConfig,
-} from "chakra-ui-bottom-navigation";
-import { useEffect, useReducer, useState } from "react";
+import { DeleteIcon } from "@chakra-ui/icons";
+import { useEffect, useReducer, useState, type ReactNode } from "react";
 import Layout from "../../components/Layout.tsx";
 import axios from "axios";
 import { apiUrl } from "../../utils/apiUrl.tsx";
@@ -110,6 +100,63 @@ interface TeamSelectProps {
   onSave: Function;
   compressed?: boolean;
 }
+
+const VALUE_TONE: Record<string, string> = {
+  make: "accent.400",
+  miss: "neg.500",
+  reb: "team1.400",
+  play: "text.primary",
+  to: "neg.500",
+  foul: "warn.500",
+  ftm: "accent.400",
+};
+
+// A tappable stat cell. inc mode (Add/Remove) is handled by the parent via onTap.
+const StatCell = ({
+  label,
+  value,
+  tone,
+  onTap,
+  compact,
+}: {
+  label: string;
+  value: ReactNode;
+  tone: string;
+  onTap: () => void;
+  compact?: boolean;
+}) => (
+  <Flex
+    as="button"
+    type="button"
+    direction="column"
+    align="center"
+    justify="center"
+    gap={0.5}
+    py={compact ? 1.5 : 2.5}
+    bg="bg.surface"
+    border="1px solid"
+    borderColor="border.subtle"
+    borderRadius="tile"
+    cursor="pointer"
+    userSelect="none"
+    transition="all 0.1s"
+    _hover={{ bg: "bg.hover", borderColor: "accent.500" }}
+    _active={{ transform: "scale(0.96)" }}
+    onClick={onTap}
+  >
+    <Heading
+      fontFamily="heading"
+      fontSize={compact ? "lg" : "xl"}
+      lineHeight={1}
+      color={VALUE_TONE[tone]}
+    >
+      {value}
+    </Heading>
+    <Text fontSize="10px" fontWeight={800} letterSpacing="0.06em" color="text.muted">
+      {label}
+    </Text>
+  </Flex>
+);
 
 const Player = ({
   name,
@@ -237,268 +284,103 @@ const Player = ({
     updatePlayers(newPlayers);
   };
 
+  const teamColor = team == 1 ? "team1.500" : "team2.500";
+
   return (
-    <>
-      <HStack w={!compressed ? "410px" : "350px"}>
-        <Text
-          textAlign="left"
-          fontWeight="semibold"
-          color={team == 1 ? "#90CDF4" : "#FCD28D"}
+    <Box
+      w="100%"
+      maxW={compressed ? "340px" : "520px"}
+      bg="bg.card"
+      border="1px solid"
+      borderColor="border.subtle"
+      borderRadius="card"
+      overflow="hidden"
+      position="relative"
+      _before={{
+        content: '""',
+        position: "absolute",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: "4px",
+        bg: teamColor,
+      }}
+      px={{ base: 3, md: 4 }}
+      py={3}
+    >
+      {/* Header */}
+      <Flex align="center" gap={2} mb={2}>
+        <Flex
+          w="34px"
+          h="34px"
+          flexShrink={0}
+          align="center"
+          justify="center"
+          borderRadius="10px"
+          bg="bg.hover"
+          color={teamColor}
+          fontFamily="heading"
+          fontWeight={900}
+          fontSize="14px"
         >
-          #{jersey} {name} | {position}
-        </Text>
-        <Text
-          fontWeight="semibold"
-          px="3px"
-          borderRadius="md"
-          py="2px"
-          bg="#6D6A75"
-          color="black"
-        >
-          {twos * 1 + threes * 2} sPTS
-        </Text>
-        <Text
-          fontWeight="semibold"
-          px="3px"
-          borderRadius="md"
-          py="2px"
-          bg="#3590F3"
-          color="black"
-        >
-          {twos * 2 + threes * 3 + fts * 1} PTS
-        </Text>
-        <VStack>
+          {jersey}
+        </Flex>
+        <Box flex="1" minW={0}>
           <Text
-            textAlign="left"
-            fontWeight="semibold"
-            ml="auto"
-            px="3px"
-            borderRadius="md"
-            py="2px"
-            bg="#CAF0F8"
-            color="black"
-            onClick={() => {
-              updateStats("fouls");
-            }}
+            fontFamily="heading"
+            fontWeight={800}
+            fontSize={{ base: "sm", md: "md" }}
+            color={teamColor}
+            isTruncated
           >
-            PFS: {fouls}
+            {name}
           </Text>
-          {compressed ? (
-            <Text
-              textAlign="left"
-              fontWeight="semibold"
-              ml="auto"
-              px="3px"
-              borderRadius="md"
-              py="2px"
-              bg="#FFDF69"
-              color="black"
-              onClick={() => {
-                updateStats("fts");
-              }}
-            >
-              FTM: {fts}
+          <Text fontSize="11px" color="text.faint" fontWeight={600}>
+            {position}
+          </Text>
+        </Box>
+        <HStack spacing={1.5}>
+          <VStack spacing={0} bg="bg.surface" px={2} py={1} borderRadius="lg">
+            <Heading fontFamily="heading" fontSize="md" lineHeight={1}>
+              {twos * 1 + threes * 2}
+            </Heading>
+            <Text fontSize="9px" color="text.faint" fontWeight={700}>
+              sPTS
             </Text>
-          ) : null}
-        </VStack>
-      </HStack>
-      <Box
-        w={!compressed ? "410px" : "300px"}
-        h="170px"
-        bg="#6D98BA"
-        borderRadius="lg"
-      >
-        <Center h="100%">
-          <VStack
-            pos="relative"
-            width="100%"
-            h="100%"
-            justifyContent="center"
-            spacing="2vh"
-          >
-            <Box
-              pos="absolute"
-              top={0}
-              right={0}
-              textAlign="left"
-              fontWeight="semibold"
-              fontSize="9pt"
-              ml="auto"
-              px="25px"
-              borderRadius="md"
-              py="2px"
-              bg="#182825"
-              color="white"
-              w="80px"
-              onClick={() => {
-                updateStats("tov");
-              }}
-            >
-              <Center>TO {tov}</Center>
-            </Box>
-            <HStack mt="1vh">
-              <Text fontWeight="bold">2P</Text>
-              <Box
-                textAlign="left"
-                fontWeight="semibold"
-                ml="auto"
-                px="25px"
-                borderRadius="md"
-                py="2px"
-                bg="#758173"
-                color="black"
-                w="65px"
-                alignItems="center"
-                justifyContent="center"
-                onClick={() => {
-                  updateStats("twos");
-                }}
-              >
-                <Center>{twos}</Center>
-              </Box>
-              <Box
-                textAlign="left"
-                fontWeight="semibold"
-                ml="auto"
-                px="25px"
-                borderRadius="md"
-                py="2px"
-                bg="#A30000"
-                color="black"
-                w="65px"
-                onClick={() => {
-                  updateStats("twosAttempted");
-                }}
-              >
-                <Center>{twosAttempted}</Center>
-              </Box>
-              <Box
-                textAlign="left"
-                fontWeight="semibold"
-                ml="auto"
-                px="25px"
-                borderRadius="md"
-                py="2px"
-                bg="#182825"
-                color="white"
-                w="115px"
-                onClick={() => {
-                  updateStats("blk");
-                }}
-              >
-                <Center>BLK {blk}</Center>
-              </Box>
-            </HStack>
-            <HStack>
-              <Text fontWeight="bold">3P</Text>
-              <Box
-                textAlign="left"
-                fontWeight="semibold"
-                ml="auto"
-                px="25px"
-                borderRadius="md"
-                py="2px"
-                bg="#758173"
-                color="black"
-                w="65px"
-                alignItems="center"
-                justifyContent="center"
-                onClick={() => {
-                  updateStats("threes");
-                }}
-              >
-                <Center>{threes}</Center>
-              </Box>
-              <Box
-                textAlign="left"
-                fontWeight="semibold"
-                ml="auto"
-                px="25px"
-                borderRadius="md"
-                py="2px"
-                bg="#A30000"
-                color="black"
-                w="65px"
-                onClick={() => {
-                  updateStats("threesAttempted");
-                }}
-              >
-                <Center>{threesAttempted}</Center>
-              </Box>
-              <Box
-                textAlign="left"
-                fontWeight="semibold"
-                ml="auto"
-                px="25px"
-                borderRadius="md"
-                py="2px"
-                bg="#182825"
-                color="white"
-                w="115px"
-                onClick={() => {
-                  updateStats("stl");
-                }}
-              >
-                <Center>STL {stl}</Center>
-              </Box>
-            </HStack>
-            <HStack>
-              <Text fontWeight="bold">RB</Text>
-              <Box
-                textAlign="left"
-                fontWeight="semibold"
-                ml="auto"
-                px="25px"
-                borderRadius="md"
-                py="2px"
-                bg="#6279B8"
-                color="black"
-                w="65px"
-                alignItems="center"
-                justifyContent="center"
-                onClick={() => {
-                  updateStats("offReb");
-                }}
-              >
-                <Center>{offReb}</Center>
-              </Box>
-              <Box
-                textAlign="left"
-                fontWeight="semibold"
-                ml="auto"
-                px="25px"
-                borderRadius="md"
-                py="2px"
-                bg="#EDDEA4"
-                color="black"
-                w="65px"
-                onClick={() => {
-                  updateStats("defReb");
-                }}
-              >
-                <Center>{defReb}</Center>
-              </Box>
-              <Box
-                textAlign="left"
-                fontWeight="semibold"
-                ml="auto"
-                px="25px"
-                borderRadius="md"
-                py="2px"
-                bg="#182825"
-                color="white"
-                w="115px"
-                onClick={() => {
-                  updateStats("ast");
-                }}
-              >
-                <Center>AST {ast}</Center>
-              </Box>
-            </HStack>
           </VStack>
-        </Center>
-      </Box>
-    </>
+          <VStack spacing={0} bg="accent.500" color="accent.fg" px={2} py={1} borderRadius="lg">
+            <Heading fontFamily="heading" fontSize="md" lineHeight={1}>
+              {twos * 2 + threes * 3 + fts * 1}
+            </Heading>
+            <Text fontSize="9px" fontWeight={800}>
+              PTS
+            </Text>
+          </VStack>
+        </HStack>
+      </Flex>
+
+      {/* Fouls + FTM (tappable) */}
+      <HStack spacing={2} mb={2}>
+        <StatCell label="PF" value={fouls} tone="foul" onTap={() => updateStats("fouls")} compact />
+        {compressed ? (
+          <StatCell label="FTM" value={fts} tone="ftm" onTap={() => updateStats("fts")} compact />
+        ) : null}
+        <StatCell label="TO" value={tov} tone="to" onTap={() => updateStats("tov")} compact />
+      </HStack>
+
+      {/* Stat grid */}
+      <SimpleGrid columns={compressed ? 3 : 5} spacing={2}>
+        <StatCell label="2PM" value={twos} tone="make" onTap={() => updateStats("twos")} />
+        <StatCell label="2PA" value={twosAttempted} tone="miss" onTap={() => updateStats("twosAttempted")} />
+        <StatCell label="3PM" value={threes} tone="make" onTap={() => updateStats("threes")} />
+        <StatCell label="3PA" value={threesAttempted} tone="miss" onTap={() => updateStats("threesAttempted")} />
+        <StatCell label="OREB" value={offReb} tone="reb" onTap={() => updateStats("offReb")} />
+        <StatCell label="DREB" value={defReb} tone="reb" onTap={() => updateStats("defReb")} />
+        <StatCell label="AST" value={ast} tone="play" onTap={() => updateStats("ast")} />
+        <StatCell label="STL" value={stl} tone="play" onTap={() => updateStats("stl")} />
+        <StatCell label="BLK" value={blk} tone="play" onTap={() => updateStats("blk")} />
+      </SimpleGrid>
+    </Box>
   );
 };
 
@@ -515,157 +397,174 @@ const TeamSelect = ({
   let [playerName, setPlayerName] = useState("");
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
-  return (
-    <Box w="410px">
-      <Button onClick={onOpen}>Select Teams</Button>
+  const TeamChip = ({
+    player,
+    index,
+    color,
+    onRemove,
+  }: {
+    player: string;
+    index: number;
+    color: string;
+    onRemove: () => void;
+  }) => (
+    <Flex
+      align="center"
+      gap={2}
+      bg="bg.surface"
+      border="1px solid"
+      borderColor="border.subtle"
+      borderRadius="full"
+      pl={3}
+      pr={1}
+      py={1}
+    >
+      <Box w="8px" h="8px" borderRadius="full" bg={color} />
+      <Text fontWeight={700} fontSize="sm" flex="1">
+        {player}
+      </Text>
+      <IconButton
+        icon={<DeleteIcon />}
+        aria-label="delete"
+        size="xs"
+        variant="ghost"
+        colorScheme="red"
+        onClick={onRemove}
+      />
+    </Flex>
+  );
 
-      <Modal isOpen={isOpen} onClose={onClose}>
+  return (
+    <Box>
+      <Button variant="surface" onClick={onOpen}>
+        Select Teams
+      </Button>
+
+      <Modal isOpen={isOpen} onClose={onClose} size={{ base: "full", md: "xl" }}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Select Teams</ModalHeader>
+          <ModalHeader fontFamily="heading" fontWeight={800}>
+            Select Teams
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <HStack>
+            <Flex direction={{ base: "column", md: "row" }} gap={5} align="start">
               <FormControl>
-                <VStack alignItems="start" spacing="2vh">
-                  <Box>
-                    <FormLabel>Player Name</FormLabel>
-                    <Input
-                      placeholder="e.g. Lebron James"
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      value={playerName}
-                    />
-                  </Box>
-                  <HStack>
-                    <Button
-                      colorScheme="blue"
-                      onClick={() => {
-                        let oldTeam = team1;
-                        oldTeam.push(playerName);
-                        setTeam1(oldTeam);
-                        toast({
-                          title: "Player Added",
-                          description: `${playerName} added to Team 1`,
-                          status: "success",
-                          duration: 3000,
-                          isClosable: true,
-                        });
-                        setPlayerName("");
-                      }}
-                    >
-                      Team 1
-                    </Button>
-                    <Button
-                      colorScheme="orange"
-                      onClick={() => {
-                        let oldTeam = team2;
-                        oldTeam.push(playerName);
-                        setTeam2(oldTeam);
-                        toast({
-                          title: "Player Added",
-                          description: `${playerName} added to Team 2`,
-                          status: "success",
-                          duration: 3000,
-                          isClosable: true,
-                        });
-                        setPlayerName("");
-                      }}
-                    >
-                      Team 2
-                    </Button>
-                  </HStack>
-                </VStack>
+                <FormLabel color="text.muted" fontSize="sm" fontWeight={600}>
+                  Player Name
+                </FormLabel>
+                <Input
+                  bg="bg.surface"
+                  borderColor="border.subtle"
+                  _hover={{ borderColor: "accent.500" }}
+                  _focus={{ borderColor: "accent.500", boxShadow: "none" }}
+                  placeholder="e.g. Lebron James"
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  value={playerName}
+                />
+                <HStack mt={3}>
+                  <Button
+                    flex="1"
+                    bg="team1.500"
+                    color="#04121F"
+                    _hover={{ bg: "team1.400" }}
+                    onClick={() => {
+                      let oldTeam = team1;
+                      oldTeam.push(playerName);
+                      setTeam1(oldTeam);
+                      toast({
+                        title: "Player Added",
+                        description: `${playerName} added to Team 1`,
+                        status: "success",
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                      setPlayerName("");
+                    }}
+                  >
+                    Team 1
+                  </Button>
+                  <Button
+                    flex="1"
+                    bg="team2.500"
+                    color="#1A1400"
+                    _hover={{ bg: "team2.400" }}
+                    onClick={() => {
+                      let oldTeam = team2;
+                      oldTeam.push(playerName);
+                      setTeam2(oldTeam);
+                      toast({
+                        title: "Player Added",
+                        description: `${playerName} added to Team 2`,
+                        status: "success",
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                      setPlayerName("");
+                    }}
+                  >
+                    Team 2
+                  </Button>
+                </HStack>
               </FormControl>
-              <VStack w="75%" h="100%">
-                {team1.map((player: string, index: number) => {
-                  return (
-                    <HStack borderRadius="md">
-                      <Button
-                        key={index}
-                        w="100px"
-                        h="20px"
-                        onClick={() => {}}
-                        colorScheme="blue"
-                        color="black"
-                      >
-                        {player}
-                      </Button>
-                      <IconButton
-                        icon={<DeleteIcon />}
-                        aria-label="delete"
-                        ml="auto"
-                        size="sm"
-                        colorScheme="red"
-                        onClick={() => {
-                          toast({
-                            title: "Player Removed",
-                            description: `${playerName} removed from Team 1`,
-                            status: "success",
-                            duration: 3000,
-                            isClosable: true,
-                          });
-                          let old = team1;
-                          old.splice(index, 1);
-                          setTeam1(old);
-                          forceUpdate();
-                        }}
-                      ></IconButton>
-                    </HStack>
-                  );
-                })}
-                {team2.map((player: string, index: number) => {
-                  return (
-                    <HStack borderRadius="md">
-                      <Button
-                        key={index}
-                        w="100px"
-                        h="20px"
-                        onClick={() => {}}
-                        colorScheme="orange"
-                        color="black"
-                      >
-                        {player}
-                      </Button>
-                      <IconButton
-                        icon={<DeleteIcon />}
-                        aria-label="delete"
-                        ml="auto"
-                        size="sm"
-                        colorScheme="red"
-                        onClick={() => {
-                          toast({
-                            title: "Player Removed",
-                            description: `${playerName} removed from Team 2`,
-                            status: "success",
-                            duration: 3000,
-                            isClosable: true,
-                          });
-                          let old = team2;
-                          old.splice(index, 1);
-                          setTeam2(old);
-                        }}
-                      ></IconButton>
-                    </HStack>
-                  );
-                })}
+              <VStack w={{ base: "100%", md: "60%" }} align="stretch" spacing={2}>
+                {team1.map((player: string, index: number) => (
+                  <TeamChip
+                    key={`t1-${index}`}
+                    player={player}
+                    index={index}
+                    color="team1.500"
+                    onRemove={() => {
+                      toast({
+                        title: "Player Removed",
+                        description: `${player} removed from Team 1`,
+                        status: "success",
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                      let old = team1;
+                      old.splice(index, 1);
+                      setTeam1(old);
+                      forceUpdate();
+                    }}
+                  />
+                ))}
+                {team2.map((player: string, index: number) => (
+                  <TeamChip
+                    key={`t2-${index}`}
+                    player={player}
+                    index={index}
+                    color="team2.500"
+                    onRemove={() => {
+                      toast({
+                        title: "Player Removed",
+                        description: `${player} removed from Team 2`,
+                        status: "success",
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                      let old = team2;
+                      old.splice(index, 1);
+                      setTeam2(old);
+                      forceUpdate();
+                    }}
+                  />
+                ))}
               </VStack>
-            </HStack>
+            </Flex>
           </ModalBody>
 
           <ModalFooter>
             <Button
-              colorScheme="blue"
-              mr={3}
+              variant="accent"
               onClick={() => {
-                // set team1 and 2 into localStorage22
                 localStorage.setItem("T1", JSON.stringify(team1));
                 localStorage.setItem("T2", JSON.stringify(team2));
-                // function calls
-                onSave(); // - save callback
+                onSave();
                 onClose();
               }}
             >
-              Save
+              Save Teams
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -837,7 +736,7 @@ const Home = () => {
 
   const PhonePlayerView = () => {
     return (
-      <>
+      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4} w="100%" justifyItems="center">
         {players.map((player: PlayerDetails, index: number) => {
           if (!player.setScore1) {
             return (
@@ -865,7 +764,7 @@ const Home = () => {
             );
           }
         })}
-      </>
+      </SimpleGrid>
     );
   };
 
@@ -909,9 +808,9 @@ const Home = () => {
     const tms = splitParts();
 
     return (
-      <HStack spacing={playoffs ? 15 : undefined}>
+      <Flex justify="center" gap={4} flexWrap="wrap" w="100%">
         {tms.map((ppl: any[], idx: number) => (
-          <VStack key={idx}>
+          <VStack key={idx} spacing={3} flex={{ base: "1 1 100%", md: "1 1 320px" }} maxW="360px">
             {ppl.map((player: PlayerDetails, index: number) => {
               if (!player.setScore1) {
                 return (
@@ -943,7 +842,7 @@ const Home = () => {
             })}
           </VStack>
         ))}
-      </HStack>
+      </Flex>
     );
   };
 
@@ -953,30 +852,47 @@ const Home = () => {
 
     return (
       <>
-        <Button onClick={onOpen} w="100%">
+        <Button variant="accent" onClick={onOpen}>
           End Game
         </Button>
 
         <Modal isOpen={isOpen} onClose={onClose}>
           <ModalOverlay />
           <ModalContent>
-            <ModalHeader>Send Game Results</ModalHeader>
+            <ModalHeader fontFamily="heading" fontWeight={800}>
+              Send Game Results
+            </ModalHeader>
             <ModalCloseButton />
             <ModalBody>
-              <Heading fontSize="13pt">Settings</Heading>
-              <UnorderedList>
-                <HStack>
-                  <Text>Average Fill</Text>
-                  <Switch
-                    id="isChecked"
-                    onChange={(_) => {
-                      setAverageFill(!averageFill);
-                    }}
-                  />
-                </HStack>
-              </UnorderedList>
+              <Text fontSize="sm" color="text.muted" fontWeight={700} mb={2}>
+                SETTINGS
+              </Text>
+              <Flex
+                align="center"
+                justify="space-between"
+                bg="bg.surface"
+                border="1px solid"
+                borderColor="border.subtle"
+                borderRadius="tile"
+                px={4}
+                py={3}
+              >
+                <Box>
+                  <Text fontWeight={700}>Average Fill</Text>
+                  <Text fontSize="xs" color="text.faint">
+                    Backfill non-shooting stats from career averages
+                  </Text>
+                </Box>
+                <Switch
+                  id="isChecked"
+                  colorScheme="green"
+                  onChange={(_) => {
+                    setAverageFill(!averageFill);
+                  }}
+                />
+              </Flex>
 
-              <Text mt="5vh" fontWeight="bold">
+              <Text mt={5} fontWeight="bold">
                 Make sure everything looks good!
               </Text>
             </ModalBody>
@@ -984,16 +900,14 @@ const Home = () => {
             <ModalFooter>
               <Button
                 w="100%"
+                variant="accent"
                 onClick={async () => {
-                  const endGameReq = await axios.post(
-                    `${apiUrl}/api/endGame`,
-                    {
-                      players: players,
-                      winner: score1 > score2 ? 1 : score2 > score1 ? 2 : 0,
-                      mode: playoffs ? "4v4" : "2v2",
-                      averageFill,
-                    }
-                  );
+                  const endGameReq = await axios.post(`${apiUrl}/api/endGame`, {
+                    players: players,
+                    winner: score1 > score2 ? 1 : score2 > score1 ? 2 : 0,
+                    mode: playoffs ? "4v4" : "2v2",
+                    averageFill,
+                  });
 
                   const error = endGameReq.data.error;
 
@@ -1055,80 +969,141 @@ const Home = () => {
   };
 
   return (
-    <Layout size={playoffs ? "100vw" : undefined}>
-      <HStack w="410px" h="100%" justifyContent="space-between">
-        <TeamSelect
-          setTeam1={setTeam1}
-          setTeam2={setTeam2}
-          team1={team1}
-          team2={team2}
-          onSave={createPlayers}
-        />
-        <Center>
-          <Heading fontSize="17pt" w="100%">
-            <HStack>
-              <Text color="#90CDF4">{score1[0]}</Text>
-              <Text color="#90CDF4" fontWeight="normal">
-                ({score1[1]})
+    <Layout size={playoffs ? "1400px" : undefined}>
+      {/* Scoreboard */}
+      <Box
+        bg="bg.card"
+        border="1px solid"
+        borderColor="border.subtle"
+        borderRadius="card"
+        p={{ base: 4, md: 5 }}
+        mb={4}
+      >
+        <Flex align="center" justify="space-between" gap={3} wrap="wrap">
+          <TeamSelect
+            setTeam1={setTeam1}
+            setTeam2={setTeam2}
+            team1={team1}
+            team2={team2}
+            onSave={createPlayers}
+          />
+
+          <HStack spacing={3} flex="1" justify="center" minW="200px">
+            <VStack spacing={0}>
+              <Heading fontFamily="heading" fontSize={{ base: "3xl", md: "4xl" }} color="team1.500" lineHeight={1}>
+                {score1[0]}
+              </Heading>
+              <Text fontSize="xs" color="text.faint">
+                ({score1[1]}) raw
               </Text>
-              <Text>-</Text>
-              <Text color="#FCD28D" fontWeight="normal">
-                ({score2[1]})
-              </Text>
-              <Text color="#FCD28D">{score2[0]}</Text>
-            </HStack>
-          </Heading>
-        </Center>
-        <EndGameModal />
-      </HStack>
-      <HStack spacing={!playoffs ? undefined : "10px"}>
-        <Text fontWeight="bold" fontSize={playoffs ? "18pt" : "12pt"}>
-          FLS: {getFouls(1)}
-        </Text>
-        <Button
-          colorScheme={inc == 1 ? "green" : "red"}
-          onClick={() => {
-            if (inc == 1) {
-              setInc(-1);
-            } else {
-              setInc(1);
-            }
-          }}
-        >
-          Mode: {inc == 1 ? "Add" : "Remove"}
-        </Button>
-        <Button
-          colorScheme="blue"
-          onClick={() => {
-            setPlayoffs(!playoffs);
-          }}
-        >
-          Game: {!playoffs ? "Regular" : "Playoffs"}
-        </Button>
-        <Text fontWeight="bold" fontSize={playoffs ? "18pt" : "12pt"}>
-          FLS: {getFouls(2)}
-        </Text>
-      </HStack>
-      <Tabs variant="soft-rounded" colorScheme="green" size="sm">
-        <Center>
-          <TabList>
-            <Tab>Stats</Tab>
-            <Tab>Feed</Tab>
-          </TabList>
-        </Center>
-        <TabPanels>
-          <TabPanel>
-            <VStack h="max(100vh, 100%)">
-              {!playoffs ? <PhonePlayerView /> : <MaxPlayerView />}
             </VStack>
+            <Text color="text.faint" fontWeight={800}>
+              –
+            </Text>
+            <VStack spacing={0}>
+              <Heading fontFamily="heading" fontSize={{ base: "3xl", md: "4xl" }} color="team2.500" lineHeight={1}>
+                {score2[0]}
+              </Heading>
+              <Text fontSize="xs" color="text.faint">
+                ({score2[1]}) raw
+              </Text>
+            </VStack>
+          </HStack>
+
+          <EndGameModal />
+        </Flex>
+
+        {/* Controls */}
+        <Flex align="center" justify="space-between" gap={3} mt={4} wrap="wrap">
+          <FoulPill team="Team 1" color="team1.500" value={getFouls(1)} />
+          <HStack spacing={2}>
+            <Button
+              size="sm"
+              variant={inc == 1 ? "accent" : undefined}
+              bg={inc == 1 ? undefined : "neg.500"}
+              color={inc == 1 ? undefined : "white"}
+              _hover={inc == 1 ? undefined : { opacity: 0.9 }}
+              onClick={() => {
+                if (inc == 1) {
+                  setInc(-1);
+                } else {
+                  setInc(1);
+                }
+              }}
+            >
+              {inc == 1 ? "+ Add" : "– Remove"}
+            </Button>
+            <Button
+              size="sm"
+              variant="surface"
+              onClick={() => {
+                setPlayoffs(!playoffs);
+              }}
+            >
+              {!playoffs ? "Regular" : "Playoffs"}
+            </Button>
+          </HStack>
+          <FoulPill team="Team 2" color="team2.500" value={getFouls(2)} />
+        </Flex>
+      </Box>
+
+      <Tabs variant="soft-rounded" colorScheme="green" size="sm">
+        <TabList gap={2} justifyContent="center" mb={4}>
+          <Tab>Stats</Tab>
+          <Tab>Feed</Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel px={0}>
+            {players.length === 0 ? (
+              <Center
+                h="200px"
+                color="text.faint"
+                bg="bg.card"
+                border="1px solid"
+                borderColor="border.subtle"
+                borderRadius="card"
+                textAlign="center"
+                px={4}
+              >
+                No active game. Tap “Select Teams” to start tracking.
+              </Center>
+            ) : !playoffs ? (
+              <PhonePlayerView />
+            ) : (
+              <MaxPlayerView />
+            )}
           </TabPanel>
-          <TabPanel>
-            <Text>Live Game Feed Update Coming Soon</Text>
+          <TabPanel px={0}>
+            <Center h="120px" color="text.faint">
+              Live Game Feed Update Coming Soon
+            </Center>
           </TabPanel>
         </TabPanels>
       </Tabs>
     </Layout>
   );
 };
+
+const FoulPill = ({
+  team,
+  color,
+  value,
+}: {
+  team: string;
+  color: string;
+  value: number;
+}) => (
+  <VStack spacing={0} minW="70px">
+    <Text fontSize="10px" color="text.faint" fontWeight={700}>
+      {team}
+    </Text>
+    <HStack spacing={1}>
+      <Box w="8px" h="8px" borderRadius="full" bg={color} />
+      <Text fontWeight={800} fontFamily="heading">
+        {value} <Box as="span" fontSize="xs" color="text.muted">FLS</Box>
+      </Text>
+    </HStack>
+  </VStack>
+);
 
 export default Home;

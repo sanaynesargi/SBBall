@@ -1,15 +1,27 @@
-import { HStack, Heading } from "@chakra-ui/react";
+import { VStack, Heading, Text } from "@chakra-ui/react";
 import { RealStatProps } from "../types/RealStat";
 
 export const RealStat = ({ statName, statNum, sm }: RealStatProps) => {
   return (
-    <HStack display="table-cell" textAlign="center">
-      <HStack spacing={1}>
-        <Heading fontSize={sm ? "20pt" : "25pt"}>{statNum}</Heading>
-        <Heading fontSize="12pt" color="gray" mt="9pt" fontWeight="semibold">
-          {statName}
-        </Heading>
-      </HStack>
-    </HStack>
+    <VStack spacing={0} textAlign="center" px={2}>
+      <Heading
+        fontFamily="heading"
+        fontWeight={900}
+        lineHeight={1}
+        color="text.primary"
+        fontSize={sm ? { base: "lg", md: "xl" } : { base: "xl", md: "2xl" }}
+      >
+        {statNum}
+      </Heading>
+      <Text
+        color="text.muted"
+        fontSize="2xs"
+        fontWeight={700}
+        letterSpacing="0.04em"
+        textTransform="uppercase"
+      >
+        {statName}
+      </Text>
+    </VStack>
   );
 };

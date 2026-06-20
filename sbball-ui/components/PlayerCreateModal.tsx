@@ -9,7 +9,7 @@ import {
   ModalHeader,
   ModalCloseButton,
   ModalBody,
-  HStack,
+  Stack,
   FormControl,
   VStack,
   FormLabel,
@@ -46,79 +46,114 @@ export const PlayerCreateModal = ({
   let [pos2, setPos2] = useState("");
   let [height, setHeight] = useState("");
 
+  const labelProps = {
+    color: "text.muted",
+    fontSize: "sm",
+    fontWeight: 600,
+    mb: 1,
+  };
+
+  const inputProps = {
+    bg: "bg.surface",
+    border: "1px solid",
+    borderColor: "border.subtle",
+    color: "text.primary",
+    _placeholder: { color: "text.faint" },
+    _hover: { borderColor: "accent.500" },
+    _focus: { borderColor: "accent.500", boxShadow: "none" },
+    _focusVisible: { borderColor: "accent.500", boxShadow: "none" },
+  } as const;
+
   return (
-    <Box w="410px">
-      <Button onClick={onOpen}>Create Player</Button>
+    <Box w="100%" maxW="410px">
+      <Button variant="accent" onClick={onOpen}>
+        Create Player
+      </Button>
 
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Create Player</ModalHeader>
+          <ModalHeader fontFamily="heading" fontWeight={800}>
+            Create Player
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <HStack>
+            <Stack
+              direction={{ base: "column", md: "row" }}
+              spacing={{ base: 4, md: 6 }}
+              align="start"
+            >
               <FormControl>
-                <VStack alignItems="start" height="100%" spacing="2vh">
-                  <Box>
-                    <FormLabel>Player Name</FormLabel>
+                <VStack alignItems="start" height="100%" spacing={4} w="100%">
+                  <Box w="100%">
+                    <FormLabel {...labelProps}>Player Name</FormLabel>
                     <Input
+                      {...inputProps}
                       placeholder="e.g. Lebron James"
                       onChange={(e) => setPlayerName(e.target.value)}
                       value={playerName}
                     />
                   </Box>
-                  <Box>
-                    <FormLabel>Jersey #</FormLabel>
+                  <Box w="100%">
+                    <FormLabel {...labelProps}>Jersey #</FormLabel>
                     <NumberInput
                       onChange={(e) => setJerseyNum(e)}
                       defaultValue={15}
                       value={jerseyNum}
                     >
-                      <NumberInputField />
+                      <NumberInputField {...inputProps} />
                       <NumberInputStepper>
                         <NumberIncrementStepper />
                         <NumberDecrementStepper />
                       </NumberInputStepper>
                     </NumberInput>
                   </Box>
-                  <Box>
-                    <FormLabel>Position</FormLabel>
+                  <Box w="100%">
+                    <FormLabel {...labelProps}>Position</FormLabel>
                     <PositionSelect setPos={setPos} />
                   </Box>
                 </VStack>
               </FormControl>
               <FormControl>
-                <VStack alignItems="start" spacing="2vh">
-                  <Box>
-                    <FormLabel>Nickname (Opt.)</FormLabel>
+                <VStack alignItems="start" spacing={4} w="100%">
+                  <Box w="100%">
+                    <FormLabel {...labelProps}>Nickname (Opt.)</FormLabel>
                     <Input
+                      {...inputProps}
                       placeholder="e.g. The King"
                       onChange={(e) => setNickName(e.target.value)}
                       value={nickName}
                     />
                   </Box>
-                  <Box>
-                    <FormLabel>Height</FormLabel>
+                  <Box w="100%">
+                    <FormLabel {...labelProps}>Height</FormLabel>
                     <Input
+                      {...inputProps}
                       placeholder={`e.g. 7'0"`}
                       onChange={(e) => setHeight(e.target.value)}
                       value={height}
                     />
                   </Box>
 
-                  <Box>
-                    <FormLabel>Sec. Position (Opt.)</FormLabel>
+                  <Box w="100%">
+                    <FormLabel {...labelProps}>Sec. Position (Opt.)</FormLabel>
                     <PositionSelect setPos={setPos2} sec />
                   </Box>
                 </VStack>
               </FormControl>
-            </HStack>
+            </Stack>
           </ModalBody>
 
           <ModalFooter>
             <Button
-              colorScheme="blue"
+              variant="ghostMuted"
               mr={3}
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="accent"
               onClick={async () => {
                 let old = players.slice();
 
@@ -133,7 +168,7 @@ export const PlayerCreateModal = ({
 
                 // send request to server to insert player
                 const resp = await axios.post(
-                  `http://${apiUrl}/api/createPlayer`,
+                  `${apiUrl}/api/createPlayer`,
                   newPlayer
                 );
 

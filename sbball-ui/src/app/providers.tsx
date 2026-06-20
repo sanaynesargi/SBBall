@@ -1,21 +1,14 @@
 // app/providers.tsx
 "use client";
 
-import { ChakraProvider, extendTheme, type ThemeConfig } from "@chakra-ui/react";
-import { BottomNavigationStyleConfig } from "chakra-ui-bottom-navigation";
-
-const config: ThemeConfig = {
-  initialColorMode: 'dark',
-  useSystemColorMode: false,
-};
-
-const theme = extendTheme({
-  config,
-  components: {
-    BottomNavigation: BottomNavigationStyleConfig,
-  },
-});
+import { CacheProvider } from "@chakra-ui/next-js";
+import { ChakraProvider } from "@chakra-ui/react";
+import theme from "@/lib/theme";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <ChakraProvider theme={theme}>{children}</ChakraProvider>;
+  return (
+    <CacheProvider>
+      <ChakraProvider theme={theme}>{children}</ChakraProvider>
+    </CacheProvider>
+  );
 }

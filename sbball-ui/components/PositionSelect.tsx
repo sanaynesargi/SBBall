@@ -1,4 +1,4 @@
-import { VStack, Button, HStack } from "@chakra-ui/react";
+import { VStack, Button, Wrap, WrapItem } from "@chakra-ui/react";
 import { useState, useReducer, useEffect } from "react";
 
 interface PositionSelectProps {
@@ -42,60 +42,37 @@ export const PositionSelect = ({
   }, [positionIndex]);
 
   return (
-    <VStack alignItems="start">
+    <VStack alignItems="start" w="100%">
       {!chosenSecond && sec ? (
-        <Button onClick={() => setChosenSecond(true)}>Enable Sec. Pos</Button>
+        <Button size="sm" variant="surface" onClick={() => setChosenSecond(true)}>
+          Enable Sec. Pos
+        </Button>
       ) : (
-        <>
-          <HStack>
-            <Button
-              size="xs"
-              onClick={() => {
-                setPositionIndex(0);
-              }}
-              colorScheme={positionIndex == 0 ? "green" : "gray"}
-            >
-              PG
-            </Button>
-            <Button
-              size="xs"
-              onClick={() => {
-                setPositionIndex(1);
-              }}
-              colorScheme={positionIndex == 1 ? "green" : "gray"}
-            >
-              SG
-            </Button>
-            <Button
-              size="xs"
-              onClick={() => {
-                setPositionIndex(2);
-              }}
-              colorScheme={positionIndex == 2 ? "green" : "gray"}
-            >
-              SF
-            </Button>
-            <Button
-              size="xs"
-              onClick={() => {
-                setPositionIndex(3);
-              }}
-              colorScheme={positionIndex == 3 ? "green" : "gray"}
-            >
-              PF
-            </Button>
-          </HStack>
-
-          <Button
-            size="xs"
-            onClick={() => {
-              setPositionIndex(4);
-            }}
-            colorScheme={positionIndex == 4 ? "green" : "gray"}
-          >
-            C
-          </Button>
-        </>
+        <Wrap spacing={2} w="100%">
+          {positions.map((label, i) => {
+            const selected = positionIndex === i;
+            return (
+              <WrapItem key={label}>
+                <Button
+                  size="sm"
+                  variant={selected ? undefined : "surface"}
+                  bg={selected ? "accent.500" : undefined}
+                  color={selected ? "accent.fg" : undefined}
+                  _hover={selected ? { bg: "accent.400" } : undefined}
+                  _active={selected ? { bg: "accent.600" } : undefined}
+                  fontFamily="heading"
+                  fontWeight={800}
+                  minW="44px"
+                  onClick={() => {
+                    setPositionIndex(i);
+                  }}
+                >
+                  {label}
+                </Button>
+              </WrapItem>
+            );
+          })}
+        </Wrap>
       )}
     </VStack>
   );

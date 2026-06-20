@@ -8,11 +8,39 @@ import {
   ModalBody,
   VStack,
   HStack,
+  SimpleGrid,
   ModalFooter,
   Button,
   Text,
 } from "@chakra-ui/react";
 import { RealStatShort } from "./RealStatShort";
+
+// Preserves the original threshold chain (first match wins); maps the
+// legacy CSS color names onto theme tokens: mid -> yellow, high -> green,
+// low -> red.
+const ratingColor = (rating: number) => {
+  return rating >= 5
+    ? "warn.500"
+    : rating >= 10
+    ? "accent.400"
+    : rating >= 15
+    ? "accent.400"
+    : rating >= 20
+    ? "pos.500"
+    : rating >= 25
+    ? "pos.500"
+    : rating >= 30
+    ? "pos.500"
+    : rating >= 35
+    ? "pos.500"
+    : rating >= 40
+    ? "pos.500"
+    : rating >= 45
+    ? "pos.500"
+    : rating >= 50
+    ? "pos.500"
+    : "neg.500";
+};
 
 interface FullStatDisplayProps {
   data: any;
@@ -33,35 +61,22 @@ export const FullStatDisplay = ({
     <Box>
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent bg="gray.800">
+        <ModalContent>
           <ModalHeader>
-            <HStack>
-              <Text>{name} |</Text>
+            <HStack spacing={2} align="baseline">
               <Text
-                fontSize={"15pt"}
-                color={
-                  data["rating"] >= 5
-                    ? "yellow"
-                    : data["rating"] >= 10
-                    ? "greenyellow"
-                    : data["rating"] >= 15
-                    ? "green"
-                    : data["rating"] >= 20
-                    ? "lime"
-                    : data["rating"] >= 25
-                    ? "limegreen"
-                    : data["rating"] >= 30
-                    ? "forestgreen"
-                    : data["rating"] >= 35
-                    ? "mediumseagreen"
-                    : data["rating"] >= 40
-                    ? "seagreen"
-                    : data["rating"] >= 45
-                    ? "darkseagreen"
-                    : data["rating"] >= 50
-                    ? "mediumspringgreen"
-                    : "red"
-                }
+                fontFamily="heading"
+                fontWeight={800}
+                color="text.primary"
+              >
+                {name}
+              </Text>
+              <Text color="text.faint">|</Text>
+              <Text
+                fontFamily="heading"
+                fontWeight={900}
+                fontSize={{ base: "lg", md: "xl" }}
+                color={ratingColor(data["rating"])}
               >
                 {data["rating"].toFixed(2)}
               </Text>
@@ -69,15 +84,15 @@ export const FullStatDisplay = ({
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <VStack>
-              <HStack>
+            <VStack spacing={4} align="stretch">
+              <SimpleGrid columns={{ base: 3, md: 5 }} spacing={3}>
                 <RealStatShort statName="pts" statNum={data["pts"]} />
                 <RealStatShort statName="reb" statNum={data["reb"]} />
                 <RealStatShort statName="ast" statNum={data["ast"]} />
                 <RealStatShort statName="stl" statNum={data["stl"]} />
                 <RealStatShort statName="blk" statNum={data["blk"]} />
-              </HStack>
-              <HStack>
+              </SimpleGrid>
+              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={3}>
                 <RealStatShort
                   statName="2fg"
                   statNum={`${data["twos"]}/${data["twosAttempted"]}`}
@@ -92,15 +107,13 @@ export const FullStatDisplay = ({
                     (data["threes"] / data["threesAttempted"]) * 100 || 0
                   ).toFixed(2)}%`}
                 />
-              </HStack>
-              <HStack>
                 <RealStatShort statName="fg%" statNum={data.fg} />
-              </HStack>
+              </SimpleGrid>
             </VStack>
           </ModalBody>
 
           <ModalFooter>
-            <Button colorScheme="blue" onClick={onClose}>
+            <Button variant="accent" onClick={onClose}>
               Close
             </Button>
           </ModalFooter>

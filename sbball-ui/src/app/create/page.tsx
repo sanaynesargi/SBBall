@@ -1,30 +1,13 @@
 "use client";
 import {
-  Avatar,
   Box,
-  Button,
-  Center,
-  Container,
-  FormControl,
-  FormLabel,
+  Flex,
   HStack,
   Heading,
-  IconButton,
-  Input,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  NumberDecrementStepper,
-  NumberIncrementStepper,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
   Text,
   Select,
+  SimpleGrid,
+  Stack,
   Tab,
   TabList,
   TabPanel,
@@ -32,19 +15,24 @@ import {
   Tabs,
   VStack,
   useDisclosure,
-  useToast,
 } from "@chakra-ui/react";
 import Layout from "../../../components/Layout.tsx";
-import { useEffect, useReducer, useState } from "react";
-import { DeleteIcon, EditIcon } from "@chakra-ui/icons";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { apiUrl } from "../../../utils/apiUrl.tsx";
-import { useRouter } from "next/navigation";
 import { BoxScoreEntry } from "../../../components/BoxScoreEntry.tsx";
 import { GameLogEntry } from "../../../components/GameLogEntry.tsx";
 import { Player } from "../../../components/Player.tsx";
 import { PlayerCreateModal } from "../../../components/PlayerCreateModal.tsx";
 import { PlayerDetails } from "../../../types/PlayerDetails.ts";
+
+const selectStyles = {
+  bg: "bg.surface",
+  borderColor: "border.subtle",
+  color: "text.primary",
+  _hover: { borderColor: "accent.500" },
+  maxW: { base: "100%", sm: "220px" },
+} as const;
 
 const AddPlayers = () => {
   const [players, setPlayers] = useState<PlayerDetails[]>([]);
@@ -140,17 +128,37 @@ const AddPlayers = () => {
   return (
     <Layout>
       <Tabs variant="soft-rounded" colorScheme="green">
-        <Center>
-          <TabList>
-            <Tab>Create Players</Tab>
-            <Tab>Game Log</Tab>
-            <Tab>Box Scores</Tab>
-          </TabList>
-        </Center>
+        <TabList
+          gap={2}
+          mb={6}
+          overflowX="auto"
+          sx={{ "&::-webkit-scrollbar": { display: "none" } }}
+        >
+          <Tab whiteSpace="nowrap">Roster</Tab>
+          <Tab whiteSpace="nowrap">Game Log</Tab>
+          <Tab whiteSpace="nowrap">Box Scores</Tab>
+        </TabList>
+
         <TabPanels>
-          <TabPanel>
-            <VStack w="410px" h="100vh">
+          {/* Roster */}
+          <TabPanel px={0}>
+            <Flex
+              direction={{ base: "column", sm: "row" }}
+              justify="space-between"
+              align={{ base: "stretch", sm: "center" }}
+              gap={3}
+              mb={5}
+            >
+              <Box>
+                <Heading fontSize={{ base: "xl", md: "2xl" }}>Roster</Heading>
+                <Text color="text.muted" fontSize="sm">
+                  {players.length} player{players.length === 1 ? "" : "s"}
+                </Text>
+              </Box>
               <PlayerCreateModal players={players} setPlayers={setPlayers} />
+            </Flex>
+
+            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={3}>
               {players.map((player: PlayerDetails, index) => {
                 return (
                   <Player
@@ -163,38 +171,38 @@ const AddPlayers = () => {
                   />
                 );
               })}
-            </VStack>
+            </SimpleGrid>
           </TabPanel>
-          <TabPanel>
-            <VStack spacing={15}>
-              <HStack>
-                {players.length == 0 ? null : (
-                  <>
-                    <Select
-                      variant="filled"
-                      placeholder="Select Mode"
-                      onChange={(e) => setSelectedMode(e.target.value)}
-                    >
-                      <option value="2v2">Regular Season</option>
-                      <option value="4v4">Playoffs</option>
-                    </Select>
-                    <Select
-                      variant="filled"
-                      placeholder="Select Player"
-                      onChange={(e) => setSelectedPlayer(e.target.value)}
-                    >
-                      {players.map((player: PlayerDetails, index) => {
-                        return (
-                          <option key={index} value={player.name}>
-                            {player.name}
-                          </option>
-                        );
-                      })}
-                    </Select>
-                  </>
-                )}
-              </HStack>
-              <VStack w="100%">
+
+          {/* Game Log */}
+          <TabPanel px={0}>
+            <VStack spacing={5} align="stretch" maxW="640px" mx="auto">
+              {players.length == 0 ? null : (
+                <Stack direction={{ base: "column", sm: "row" }} spacing={3}>
+                  <Select
+                    {...selectStyles}
+                    placeholder="Select Mode"
+                    onChange={(e) => setSelectedMode(e.target.value)}
+                  >
+                    <option value="2v2">Regular Season</option>
+                    <option value="4v4">Playoffs</option>
+                  </Select>
+                  <Select
+                    {...selectStyles}
+                    placeholder="Select Player"
+                    onChange={(e) => setSelectedPlayer(e.target.value)}
+                  >
+                    {players.map((player: PlayerDetails, index) => {
+                      return (
+                        <option key={index} value={player.name}>
+                          {player.name}
+                        </option>
+                      );
+                    })}
+                  </Select>
+                </Stack>
+              )}
+              <VStack w="100%" spacing={3} align="stretch">
                 {gameLog.map((entry: any, index: number) => {
                   const keys: any = Object.keys(entry);
                   const values: any = Object.values(entry);
@@ -231,30 +239,27 @@ const AddPlayers = () => {
               </VStack>
             </VStack>
           </TabPanel>
-          <TabPanel>
-            <VStack spacing={15}>
-              <HStack>
-                {players.length == 0 ? null : (
-                  <>
-                    <Select
-                      variant="filled"
-                      placeholder="Select Mode"
-                      onChange={(e) => setBoxScoreMode(e.target.value)}
-                    >
-                      <option value="2v2">Regular Season</option>
-                      <option value="4v4">Playoffs</option>
-                    </Select>
-                  </>
-                )}
-              </HStack>
-              <VStack w="100%">
+
+          {/* Box Scores */}
+          <TabPanel px={0}>
+            <VStack spacing={5} align="stretch">
+              {players.length == 0 ? null : (
+                <Select
+                  {...selectStyles}
+                  placeholder="Select Mode"
+                  onChange={(e) => setBoxScoreMode(e.target.value)}
+                >
+                  <option value="2v2">Regular Season</option>
+                  <option value="4v4">Playoffs</option>
+                </Select>
+              )}
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} w="100%">
                 {boxScores.map((entry: any, index) => {
                   return (
                     <BoxScoreEntry
+                      key={index}
                       index={index}
                       gameId={entry.gameId}
-                      //   setIndexNumber={setSelectedIndex}
-
                       date={entry.date}
                       onOpen={onOpen}
                       score1={entry.team1Score}
@@ -264,17 +269,8 @@ const AddPlayers = () => {
                     />
                   );
                 })}
-              </VStack>
+              </SimpleGrid>
             </VStack>
-            {/* {boxScores.length > 0 ? (
-              <BoxScoreDisplay
-                data={boxScores[selectedIndex]}
-                isOpen={isOpen}
-                onClose={onClose}
-                onOpen={onOpen}
-                key={1}
-              />
-            ) : null} */}
           </TabPanel>
         </TabPanels>
       </Tabs>

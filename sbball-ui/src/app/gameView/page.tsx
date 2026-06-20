@@ -2,27 +2,12 @@
 
 import {
   Box,
-  Center,
+  Flex,
   Heading,
-  HStack,
   VStack,
   Text,
-  Tab,
-  TabList,
-  TabPanel,
-  TabPanels,
-  Tabs,
-  Avatar,
   Divider,
   Button,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  Select,
   useDisclosure,
 } from "@chakra-ui/react";
 import Layout from "../../../components/Layout";
@@ -81,21 +66,51 @@ const getStatDataFromDesc = (entry: any) => {
 };
 
 function convertDate(dateString: string) {
-  // Parse the input date string (MM/DD/YYYY)
   const dateParts: any = dateString.trim().split("/");
-  const month = dateParts[0] - 1; // Month is zero-indexed in JS Date
+  const month = dateParts[0] - 1;
   const day = dateParts[1];
   const year = dateParts[2];
 
-  // Create a new Date object
   const date = new Date(year, month, day);
 
-  // Format the date to "Month Day, Year"
   const options: any = { year: "numeric", month: "long", day: "numeric" };
   const formattedDate = new Intl.DateTimeFormat("en-US", options).format(date);
 
   return formattedDate;
 }
+
+const TeamScore = ({
+  label,
+  score,
+  color,
+  win,
+}: {
+  label: string;
+  score: any;
+  color: string;
+  win: boolean;
+}) => (
+  <VStack spacing={1} flex="1" minW={0}>
+    <Heading
+      fontFamily="heading"
+      fontSize={{ base: "44px", md: "56px" }}
+      lineHeight={1}
+      color={win ? color : "text.primary"}
+    >
+      {score}
+    </Heading>
+    <Text
+      color="text.muted"
+      fontSize="xs"
+      fontWeight={700}
+      noOfLines={1}
+      textAlign="center"
+      px={2}
+    >
+      {label}
+    </Text>
+  </VStack>
+);
 
 const GameView = () => {
   const searchParams = useSearchParams();
@@ -125,8 +140,6 @@ const GameView = () => {
       }
 
       setBoxScoreData(data[0]);
-
-      console.log(boxScoreData);
     };
 
     fetchData();
@@ -151,67 +164,100 @@ const GameView = () => {
     fetchData();
   }, []);
 
+  const hasData = Object.keys(boxScoreData).length > 0;
+  const team1Name = hasData ? boxScoreData.team1?.replaceAll(";", ", ") : "Team 1";
+  const team2Name = hasData ? boxScoreData.team2?.replaceAll(";", ", ") : "Team 2";
+
   return (
     <Layout>
-      <Center w="410px" pos="relative">
-        <HStack>
-          <Box>
-            <HStack pos="absolute" left={0} top={2}>
-              <Heading>
-                {Object.keys(boxScoreData).length > 0
-                  ? boxScoreData.team1Score
-                  : "..."}
-              </Heading>
-            </HStack>
-            <HStack pos="absolute" right={0} top={2}>
-              <Heading>
-                {Object.keys(boxScoreData).length > 0
-                  ? boxScoreData.team2Score
-                  : "..."}
-              </Heading>
-            </HStack>
-          </Box>
+      <Box maxW="640px" mx="auto">
+        {/* Scoreboard */}
+        <Box
+          bg="bg.card"
+          border="1px solid"
+          borderColor="border.subtle"
+          borderRadius="card"
+          p={{ base: 5, md: 6 }}
+        >
+          <Flex align="center" gap={2}>
+            <TeamScore
+              label={team1Name}
+              score={hasData ? boxScoreData.team1Score : "…"}
+              color="team1.500"
+              win={hasData && boxScoreData.team1Score > boxScoreData.team2Score}
+            />
+            <VStack spacing={1} px={2}>
+              <Box
+                px={3}
+                py={1}
+                borderRadius="full"
+                bg="bg.hover"
+                color="text.muted"
+                fontSize="xs"
+                fontWeight={800}
+                letterSpacing="0.1em"
+              >
+                FINAL
+              </Box>
+              <Text color="text.faint" fontSize="xs" whiteSpace="nowrap">
+                {convertDate(date ?? "")}
+              </Text>
+            </VStack>
+            <TeamScore
+              label={team2Name}
+              score={hasData ? boxScoreData.team2Score : "…"}
+              color="team2.500"
+              win={hasData && boxScoreData.team2Score > boxScoreData.team1Score}
+            />
+          </Flex>
 
-          <VStack>
-            <Heading fontSize="15pt">Final</Heading>
-            <Text>{convertDate(date ?? "")}</Text>
-          </VStack>
-        </HStack>
-      </Center>
+          <Button
+            mt={5}
+            w="100%"
+            variant="surface"
+            onClick={onOpen}
+            isDisabled={!hasData}
+          >
+            View Box Score
+          </Button>
+        </Box>
 
-      {/* Box Score */}
-      <Button onClick={onOpen}>View Box Score</Button>
-      {Object.keys(boxScoreData).length > 0 ? (
-        <BoxScoreDisplay
-          data={boxScoreData}
-          isOpen={isOpen}
-          onClose={onClose}
-          onOpen={onOpen}
-          key={1}
-        />
-      ) : null}
+        {hasData ? (
+          <BoxScoreDisplay
+            data={boxScoreData}
+            isOpen={isOpen}
+            onClose={onClose}
+            onOpen={onOpen}
+            key={1}
+          />
+        ) : null}
 
-      {/* Feed */}
-      <VStack w="100%">
-        {feedList.map((entry: any, index: number) => {
-          const feedData = getStatDataFromDesc(entry);
+        {/* Feed */}
+        <Heading size="md" mt={8} mb={4}>
+          Play-by-Play
+        </Heading>
+        <VStack w="100%" spacing={0} align="stretch">
+          {feedList.map((entry: any, index: number) => {
+            const feedData = getStatDataFromDesc(entry);
 
-          return (
-            <>
-              <FeedEntry
-                key={index}
-                name={entry.playerName}
-                description={entry.desc}
-                stat1Num={feedData.stat1Num}
-                stat1Name={feedData.stat1Name}
-                stat2Num={feedData.stat2Num != null ? feedData.stat2Num : ""}
-                stat2Name={feedData.stat2Name != null ? feedData.stat2Name : ""}
-              />
-              <Divider w="80%" />
-            </>
-          );
-        })}
-      </VStack>
+            return (
+              <Box key={index}>
+                <FeedEntry
+                  name={entry.playerName}
+                  description={entry.desc}
+                  stat1Num={feedData.stat1Num}
+                  stat1Name={feedData.stat1Name}
+                  stat2Num={feedData.stat2Num != null ? feedData.stat2Num : ""}
+                  stat2Name={feedData.stat2Name != null ? feedData.stat2Name : ""}
+                />
+                {index < feedList.length - 1 && (
+                  <Divider borderColor="border.subtle" />
+                )}
+              </Box>
+            );
+          })}
+        </VStack>
+      </Box>
     </Layout>
   );
 };

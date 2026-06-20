@@ -6,17 +6,71 @@ import {
   Th,
   Tbody,
   Td,
-  useTab,
   useToast,
   VStack,
-  Button,
   HStack,
+  Box,
+  Flex,
+  Text,
+  Heading,
+  Button,
 } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Layout from "../../../components/Layout.tsx";
 import axios from "axios";
 import { apiUrl } from "../../../utils/apiUrl.tsx";
 import Link from "next/link";
+
+const TableCard = ({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) => (
+  <Box
+    w="100%"
+    bg="bg.card"
+    border="1px solid"
+    borderColor="border.subtle"
+    borderRadius="card"
+    overflow="hidden"
+  >
+    <Flex
+      align="baseline"
+      justify="space-between"
+      px={{ base: 4, md: 5 }}
+      py={3}
+      borderBottom="1px solid"
+      borderColor="border.subtle"
+    >
+      <Heading fontSize={{ base: "md", md: "lg" }}>{title}</Heading>
+      {hint && (
+        <Text fontSize="xs" color="text.faint" letterSpacing="0.06em">
+          {hint}
+        </Text>
+      )}
+    </Flex>
+    <Box overflowX="auto" px={{ base: 1, md: 2 }} py={1}>
+      {children}
+    </Box>
+  </Box>
+);
+
+const sortableThProps = {
+  cursor: "pointer",
+  userSelect: "none" as const,
+  whiteSpace: "nowrap" as const,
+  _hover: { color: "text.primary" },
+};
+
+const numTd = {
+  fontVariantNumeric: "tabular-nums",
+  fontWeight: 600,
+  textAlign: "end" as const,
+};
 
 const SortableTable = ({
   data,
@@ -112,102 +166,177 @@ const SortableTable = ({
     return 0;
   });
 
+  const PlayerTd = ({ name }: { name: string }) => (
+    <Td
+      fontFamily="heading"
+      fontWeight={800}
+      color="text.primary"
+      whiteSpace="nowrap"
+    >
+      {name}
+    </Td>
+  );
+
   return (
-    <VStack spacing="7vh">
-      <Table
-        variant="striped"
-        size="sm"
-        w="410px"
-        h="50vh"
-        colorScheme="blue"
-        overflowX="scroll"
-      >
-        <Thead>
-          <Tr>
-            <Th onClick={() => handleSort("player")}>Player</Th>
-            <Th onClick={() => handleSort("pts")}>PTS</Th>
-            <Th onClick={() => handleSort("reb")}>REB</Th>
-            <Th onClick={() => handleSort("ast")}>AST</Th>
-            <Th onClick={() => handleSort("stl")}>STL</Th>
-            <Th onClick={() => handleSort("blk")}>BLK</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {sortedData.map((row: any, index: number) => (
-            <Tr key={index}>
-              <Td>{row.player}</Td>
-              <Td>{row.pts.toFixed(1)}</Td>
-              <Td>{row.reb.toFixed(1)}</Td>
-              <Td>{row.ast.toFixed(1)}</Td>
-              <Td>{row.stl.toFixed(1)}</Td>
-              <Td>{row.blk.toFixed(1)}</Td>
+    <VStack spacing={5} w="100%" align="stretch">
+      <TableCard title="Averages" hint="PER GAME">
+        <Table size="sm" variant="unstyled">
+          <Thead>
+            <Tr>
+              <Th {...sortableThProps} onClick={() => handleSort("player")}>
+                Player
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort("pts")}>
+                PTS
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort("reb")}>
+                REB
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort("ast")}>
+                AST
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort("stl")}>
+                STL
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort("blk")}>
+                BLK
+              </Th>
             </Tr>
-          ))}
-        </Tbody>
-      </Table>
-      <Table
-        variant="striped"
-        size="sm"
-        w="410px"
-        h="50vh"
-        colorScheme="blue"
-        overflowX="scroll"
-      >
-        <Thead>
-          <Tr>
-            <Th onClick={() => handleSort3("player")}>Player</Th>
-            <Th onClick={() => handleSort3("fgA")}>FGM</Th>
-            <Th onClick={() => handleSort3("fgM")}>FGA</Th>
-            <Th onClick={() => handleSort3("tpfgM")}>2PM</Th>
-            <Th onClick={() => handleSort3("tpfgA")}>2PA</Th>
-            <Th onClick={() => handleSort3("ttpfgM")}>3PM</Th>
-            <Th onClick={() => handleSort3("ttpfgA")}>3PA</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {sortedData.map((row: any, index: number) => (
-            <Tr key={index}>
-              <Td>{row.player}</Td>
-              <Td>{row.fgM.toFixed(1)}</Td>
-              <Td>{row.fgA.toFixed(1)}</Td>
-              <Td>{row.tpfgM.toFixed(1)}</Td>
-              <Td>{row.tpfgA.toFixed(1)}</Td>
-              <Td>{row.ttpfgM.toFixed(1)}</Td>
-              <Td>{row.ttpfgA.toFixed(1)}</Td>
+          </Thead>
+          <Tbody>
+            {sortedData.map((row: any, index: number) => (
+              <Tr key={index} _hover={{ bg: "bg.hover" }}>
+                <PlayerTd name={row.player} />
+                <Td {...numTd} color="accent.400">
+                  {row.pts.toFixed(1)}
+                </Td>
+                <Td {...numTd}>{row.reb.toFixed(1)}</Td>
+                <Td {...numTd}>{row.ast.toFixed(1)}</Td>
+                <Td {...numTd}>{row.stl.toFixed(1)}</Td>
+                <Td {...numTd}>{row.blk.toFixed(1)}</Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </TableCard>
+
+      <TableCard title="Shooting" hint="MAKES / ATTEMPTS">
+        <Table size="sm" variant="unstyled">
+          <Thead>
+            <Tr>
+              <Th {...sortableThProps} onClick={() => handleSort3("player")}>
+                Player
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("fgA")}>
+                FGM
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("fgM")}>
+                FGA
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("tpfgM")}>
+                2PM
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("tpfgA")}>
+                2PA
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("ttpfgM")}>
+                3PM
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("ttpfgA")}>
+                3PA
+              </Th>
             </Tr>
-          ))}
-        </Tbody>
-      </Table>
-      <Table
-        variant="striped"
-        size="sm"
-        w="410px"
-        h="50vh"
-        colorScheme="blue"
-        overflowX="scroll"
-      >
-        <Thead>
-          <Tr>
-            <Th onClick={() => handleSort2("player")}>Player</Th>
-            <Th onClick={() => handleSort2("fg")}>FG%</Th>
-            <Th onClick={() => handleSort2("tp")}>3P%</Th>
-            <Th onClick={() => handleSort2("tov")}>TOV</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {sortedData2.map((row: any, index: number) => (
-            <Tr key={index}>
-              <Td>{row.player}</Td>
-              <Td>{row.fg.toFixed(2)}</Td>
-              <Td>{row.tp.toFixed(2)}</Td>
-              <Td>{row.tov.toFixed(1)}</Td>
+          </Thead>
+          <Tbody>
+            {sortedData.map((row: any, index: number) => (
+              <Tr key={index} _hover={{ bg: "bg.hover" }}>
+                <PlayerTd name={row.player} />
+                <Td {...numTd}>{row.fgM.toFixed(1)}</Td>
+                <Td {...numTd}>{row.fgA.toFixed(1)}</Td>
+                <Td {...numTd}>{row.tpfgM.toFixed(1)}</Td>
+                <Td {...numTd}>{row.tpfgA.toFixed(1)}</Td>
+                <Td {...numTd}>{row.ttpfgM.toFixed(1)}</Td>
+                <Td {...numTd}>{row.ttpfgA.toFixed(1)}</Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </TableCard>
+
+      <TableCard title="Efficiency" hint="PERCENTAGES">
+        <Table size="sm" variant="unstyled">
+          <Thead>
+            <Tr>
+              <Th {...sortableThProps} onClick={() => handleSort2("player")}>
+                Player
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort2("fg")}>
+                FG%
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort2("tp")}>
+                3P%
+              </Th>
+              <Th {...sortableThProps} isNumeric onClick={() => handleSort2("tov")}>
+                TOV
+              </Th>
             </Tr>
-          ))}
-        </Tbody>
-      </Table>
+          </Thead>
+          <Tbody>
+            {sortedData2.map((row: any, index: number) => (
+              <Tr key={index} _hover={{ bg: "bg.hover" }}>
+                <PlayerTd name={row.player} />
+                <Td {...numTd}>{row.fg.toFixed(2)}</Td>
+                <Td {...numTd}>{row.tp.toFixed(2)}</Td>
+                <Td {...numTd}>{row.tov.toFixed(1)}</Td>
+              </Tr>
+            ))}
+          </Tbody>
+        </Table>
+      </TableCard>
     </VStack>
   );
 };
+
+const ModeToggle = ({
+  mode,
+  onToggle,
+}: {
+  mode: boolean;
+  onToggle: () => void;
+}) => (
+  <Flex
+    bg="bg.surface"
+    border="1px solid"
+    borderColor="border.subtle"
+    borderRadius="full"
+    p={1}
+    gap={1}
+  >
+    {[
+      { label: "Regular", active: !mode },
+      { label: "Playoffs", active: mode },
+    ].map((opt) => (
+      <Flex
+        key={opt.label}
+        px={{ base: 4, md: 5 }}
+        h="36px"
+        align="center"
+        borderRadius="full"
+        cursor="pointer"
+        fontWeight={700}
+        fontSize="sm"
+        color={opt.active ? "accent.fg" : "text.muted"}
+        bg={opt.active ? "accent.500" : "transparent"}
+        onClick={() => {
+          if (!opt.active) onToggle();
+        }}
+        transition="all 0.15s"
+      >
+        {opt.label}
+      </Flex>
+    ))}
+  </Flex>
+);
 
 const Home = () => {
   const [tableData, setTableData] = useState([]);
@@ -240,47 +369,53 @@ const Home = () => {
   }, [mode]);
 
   return (
-    <>
-      <Layout>
-        <HStack justify="center" spacing={4} mb={6} mt={2}>
-          <Button
-            colorScheme="blue"
-            onClick={() => {
-              setMode(!mode);
-            }}
-          >
-            Game: {mode ? "Playoffs" : "Regular"}
-          </Button>
+    <Layout>
+      <Flex
+        direction={{ base: "column", sm: "row" }}
+        align={{ base: "stretch", sm: "center" }}
+        justify="space-between"
+        gap={4}
+        mb={6}
+      >
+        <Box>
+          <Heading fontSize={{ base: "2xl", md: "3xl" }}>League Leaders</Heading>
+          <Text color="text.muted" fontSize="sm" mt={1}>
+            Career averages across all {mode ? "playoff" : "regular season"} games
+          </Text>
+        </Box>
+        <HStack spacing={3} justify={{ base: "space-between", sm: "flex-end" }}>
+          <ModeToggle mode={mode} onToggle={() => setMode(!mode)} />
           <Link href="/compare" passHref legacyBehavior>
-            <a
-              style={{
-                display: "inline-block",
-                background: "linear-gradient(90deg, #3182ce 0%, #2b6cb0 100%)",
-                color: "#fff",
-                fontWeight: 600,
-                fontSize: 16,
-                borderRadius: 8,
-                padding: "10px 22px",
-                boxShadow: "0 2px 8px rgba(49,130,206,0.15)",
-                textDecoration: "none",
-                transition: "background 0.2s",
-                border: "none",
-                outline: "none",
-                cursor: "pointer",
-              }}
-            >
-              Compare Players
-            </a>
+            <Button as="a" variant="surface" size="md">
+              Compare
+            </Button>
           </Link>
         </HStack>
+      </Flex>
+
+      {tableData.length === 0 ? (
+        <Flex
+          h="200px"
+          align="center"
+          justify="center"
+          color="text.faint"
+          bg="bg.card"
+          border="1px solid"
+          borderColor="border.subtle"
+          borderRadius="card"
+        >
+          No games logged yet for this mode.
+        </Flex>
+      ) : (
         <SortableTable
           data={tableData}
           defaultSortColumn="pts"
           defaultSortColumn2="fg"
+          defaultSortColumn3="fgA"
           defaultSortOrder="desc"
         />
-      </Layout>
-    </>
+      )}
+    </Layout>
   );
 };
 
