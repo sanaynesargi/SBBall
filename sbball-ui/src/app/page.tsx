@@ -663,17 +663,39 @@ const Home = () => {
     });
   };
 
-  // ---- Game clock (count-up stopwatch) ----
+  // ---- Game clock (count-up stopwatch OR countdown timer) ----
   const [clockRunning, setClockRunning] = useState(false);
   const [clockBase, setClockBase] = useState(0); // accumulated seconds while paused
   const [clockStartedAt, setClockStartedAt] = useState<number | null>(null);
-  const [, setClockTick] = useState(0); // forces re-render each second while running
+  const [clockTick, setClockTick] = useState(0); // re-render each second while running
+  const [countdownTarget, setCountdownTarget] = useState<number | null>(null);
 
   const elapsed =
     clockBase +
     (clockRunning && clockStartedAt
       ? Math.floor((Date.now() - clockStartedAt) / 1000)
       : 0);
+
+  // In countdown mode show time remaining; otherwise elapsed.
+  const remaining =
+    countdownTarget != null ? Math.max(0, countdownTarget - elapsed) : null;
+  const displaySeconds = countdownTarget != null ? (remaining as number) : elapsed;
+  const expired = countdownTarget != null && remaining === 0;
+
+  // Restore clock (incl. countdown target) on mount — works with or without an
+  // active game.
+  useEffect(() => {
+    const cBase = Number(localStorage.getItem("clockBase") ?? "0") || 0;
+    setClockBase(cBase);
+    const t = localStorage.getItem("clockTarget");
+    if (t) setCountdownTarget(Number(t) || null);
+    if (localStorage.getItem("clockRunning") === "true") {
+      const startedAt =
+        Number(localStorage.getItem("clockStartedAt")) || Date.now();
+      setClockStartedAt(startedAt);
+      setClockRunning(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!clockRunning) return;
@@ -700,16 +722,35 @@ const Home = () => {
     });
   };
 
+  // Auto-stop a running countdown when it hits zero.
+  useEffect(() => {
+    if (clockRunning && countdownTarget != null && elapsed >= countdownTarget) {
+      setClockBase(countdownTarget);
+      setClockRunning(false);
+      setClockStartedAt(null);
+      localStorage.setItem("clockBase", String(countdownTarget));
+      localStorage.setItem("clockRunning", "false");
+      localStorage.removeItem("clockStartedAt");
+      pushClockFeed("clock_stop", "Clock expired");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clockTick]);
+
   const startClock = () => {
     const startedAt = Date.now();
     setClockStartedAt(startedAt);
     setClockRunning(true);
     localStorage.setItem("clockRunning", "true");
     localStorage.setItem("clockStartedAt", String(startedAt));
-    pushClockFeed(
-      "clock_start",
-      clockBase === 0 ? "Clock started" : `Clock resumed at ${fmtClock(clockBase)}`
-    );
+    const label =
+      countdownTarget != null
+        ? clockBase === 0
+          ? `Clock started · ${fmtClock(countdownTarget)}`
+          : `Clock resumed at ${fmtClock(countdownTarget - clockBase)}`
+        : clockBase === 0
+        ? "Clock started"
+        : `Clock resumed at ${fmtClock(clockBase)}`;
+    pushClockFeed("clock_start", label);
   };
 
   const stopClock = () => {
@@ -722,9 +763,12 @@ const Home = () => {
     localStorage.setItem("clockBase", String(acc));
     localStorage.setItem("clockRunning", "false");
     localStorage.removeItem("clockStartedAt");
-    pushClockFeed("clock_stop", `Clock stopped at ${fmtClock(acc)}`);
+    const shown =
+      countdownTarget != null ? Math.max(0, countdownTarget - acc) : acc;
+    pushClockFeed("clock_stop", `Clock stopped at ${fmtClock(shown)}`);
   };
 
+  // Reset elapsed but keep the configured countdown target.
   const resetClock = () => {
     setClockBase(0);
     setClockRunning(false);
@@ -732,6 +776,30 @@ const Home = () => {
     localStorage.setItem("clockBase", "0");
     localStorage.setItem("clockRunning", "false");
     localStorage.removeItem("clockStartedAt");
+  };
+
+  // Full reset incl. countdown target (used on new/clear/end game).
+  const clearClock = () => {
+    resetClock();
+    setCountdownTarget(null);
+    localStorage.removeItem("clockTarget");
+  };
+
+  // Configure the clock: seconds > 0 -> countdown; 0 -> count-up stopwatch.
+  const applyTimer = (seconds: number) => {
+    setClockBase(0);
+    setClockRunning(false);
+    setClockStartedAt(null);
+    localStorage.setItem("clockBase", "0");
+    localStorage.setItem("clockRunning", "false");
+    localStorage.removeItem("clockStartedAt");
+    if (seconds > 0) {
+      setCountdownTarget(seconds);
+      localStorage.setItem("clockTarget", String(seconds));
+    } else {
+      setCountdownTarget(null);
+      localStorage.removeItem("clockTarget");
+    }
   };
 
   const createPlayers = async () => {
@@ -756,7 +824,7 @@ const Home = () => {
     setScore2([0, 0]);
     setFeed([]);
     localStorage.setItem("gameFeed", "[]");
-    resetClock();
+    clearClock();
 
     for (const player of team1) {
       players.push({
@@ -856,15 +924,6 @@ const Home = () => {
       try {
         setFeed(JSON.parse(pulledFeed));
       } catch {}
-    }
-
-    // Restore the game clock (accurate across reloads via the start timestamp).
-    const cBase = Number(localStorage.getItem("clockBase") ?? "0") || 0;
-    setClockBase(cBase);
-    if (localStorage.getItem("clockRunning") === "true") {
-      const startedAt = Number(localStorage.getItem("clockStartedAt")) || Date.now();
-      setClockStartedAt(startedAt);
-      setClockRunning(true);
     }
 
     let team1 = JSON.parse(pulledT1);
@@ -1158,7 +1217,7 @@ const Home = () => {
                   setScore1([0, 0]);
                   setScore2([0, 0]);
                   setFeed([]);
-                  resetClock();
+                  clearClock();
 
                   onClose();
                 }}
@@ -1186,7 +1245,7 @@ const Home = () => {
     setScore1([0, 0]);
     setScore2([0, 0]);
     setFeed([]);
-    resetClock();
+    clearClock();
   };
 
   const ClearGameButton = () => {
@@ -1235,6 +1294,113 @@ const Home = () => {
                 }}
               >
                 Clear Game
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      </>
+    );
+  };
+
+  const SetTimerModal = () => {
+    const { isOpen, onOpen, onClose } = useDisclosure();
+    const [mm, setMm] = useState("10");
+    const [ss, setSs] = useState("00");
+
+    const open = () => {
+      if (countdownTarget != null) {
+        setMm(String(Math.floor(countdownTarget / 60)));
+        setSs(String(countdownTarget % 60).padStart(2, "0"));
+      }
+      onOpen();
+    };
+
+    const apply = (seconds: number) => {
+      applyTimer(seconds);
+      onClose();
+    };
+
+    const inputStyle = {
+      bg: "bg.surface",
+      borderColor: "border.subtle",
+      _hover: { borderColor: "accent.500" },
+      _focus: { borderColor: "accent.500", boxShadow: "none" },
+      textAlign: "center" as const,
+      fontFamily: "mono",
+      w: "72px",
+    };
+
+    return (
+      <>
+        <Button size="sm" variant="ghostMuted" onClick={open}>
+          Set
+        </Button>
+
+        <Modal isOpen={isOpen} onClose={onClose} isCentered>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader fontFamily="heading" fontWeight={800}>
+              Set timer
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <Text color="text.muted" fontSize="sm" mb={3}>
+                Count down from a set time, or use a count-up stopwatch.
+              </Text>
+              <Text fontSize="xs" fontWeight={800} color="text.muted" mb={2}>
+                PRESETS
+              </Text>
+              <HStack mb={5} wrap="wrap">
+                {[5, 10, 12, 20].map((p) => (
+                  <Button
+                    key={p}
+                    size="sm"
+                    variant={countdownTarget === p * 60 ? "accent" : "surface"}
+                    onClick={() => apply(p * 60)}
+                  >
+                    {p}:00
+                  </Button>
+                ))}
+              </HStack>
+              <Text fontSize="xs" fontWeight={800} color="text.muted" mb={2}>
+                CUSTOM
+              </Text>
+              <HStack>
+                <Input
+                  {...inputStyle}
+                  type="number"
+                  min={0}
+                  value={mm}
+                  onChange={(e) => setMm(e.target.value)}
+                  aria-label="minutes"
+                />
+                <Text fontWeight={800} fontSize="xl">
+                  :
+                </Text>
+                <Input
+                  {...inputStyle}
+                  type="number"
+                  min={0}
+                  max={59}
+                  value={ss}
+                  onChange={(e) => setSs(e.target.value)}
+                  aria-label="seconds"
+                />
+                <Button
+                  variant="accent"
+                  onClick={() =>
+                    apply(
+                      (parseInt(mm || "0") || 0) * 60 + (parseInt(ss || "0") || 0)
+                    )
+                  }
+                >
+                  Set
+                </Button>
+              </HStack>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="ghostMuted" onClick={() => apply(0)}>
+                Use stopwatch ↑
               </Button>
             </ModalFooter>
           </ModalContent>
@@ -1310,11 +1476,12 @@ const Home = () => {
         <Flex
           align="center"
           justify="center"
-          gap={3}
+          gap={{ base: 2, md: 3 }}
           mt={4}
           pt={4}
           borderTop="1px solid"
           borderColor="border.subtle"
+          wrap="wrap"
         >
           <Flex align="center" gap={2}>
             <Box
@@ -1328,18 +1495,37 @@ const Home = () => {
               fontFamily="mono"
               fontSize={{ base: "2xl", md: "3xl" }}
               lineHeight={1}
+              color={expired ? "neg.500" : "text.primary"}
               sx={{ fontVariantNumeric: "tabular-nums" }}
             >
-              {fmtClock(elapsed)}
+              {fmtClock(displaySeconds)}
             </Heading>
+            {countdownTarget != null ? (
+              <Box
+                px={2}
+                py={0.5}
+                ml={1}
+                borderRadius="full"
+                bg="bg.surface"
+                border="1px solid"
+                borderColor="border.subtle"
+                fontSize="10px"
+                fontWeight={800}
+                letterSpacing="0.06em"
+                color="text.faint"
+              >
+                ▼ {fmtClock(countdownTarget)}
+              </Box>
+            ) : null}
           </Flex>
           <Button
             size="sm"
             variant={clockRunning ? "surface" : "accent"}
             minW="76px"
             onClick={clockRunning ? stopClock : startClock}
+            isDisabled={expired}
           >
-            {clockRunning ? "Pause" : "Start"}
+            {clockRunning ? "Pause" : expired ? "Time!" : "Start"}
           </Button>
           <Button
             size="sm"
@@ -1349,6 +1535,7 @@ const Home = () => {
           >
             Reset
           </Button>
+          <SetTimerModal />
         </Flex>
 
         {/* Controls */}
