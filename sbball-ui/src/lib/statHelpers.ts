@@ -17,12 +17,24 @@ export const hasFreeThrows = (mode: string) => mode !== "2v2";
 export const statsTable = (mode: string) =>
   mode === "2v2" ? "stats" : "playoff_stats";
 
+// Games excluded from FG%/3P% ONLY. These were recorded makes-only (no missed
+// attempts), so every player reads as 100% — a data-entry artifact. Their
+// points/rebounds/assists/etc. still count everywhere; only the shooting
+// percentages ignore them.
+export const FG_EXCLUDED_GAME_IDS: number[] = [20, 23];
+
+// SQL predicate that is true for rows whose game counts toward FG%/3P%.
+const fgCountsClause = FG_EXCLUDED_GAME_IDS.length
+  ? `"gameId" NOT IN (${FG_EXCLUDED_GAME_IDS.join(", ")})`
+  : "TRUE";
+
 /**
  * The shared per-player aggregate column list used by the averages and box
  * score endpoints. Aggregates are cast ::float8 so the Neon driver returns JS
  * numbers (Postgres numeric/bigint otherwise deserialize to strings), and
  * percentage denominators are wrapped in NULLIF to avoid Postgres'
- * divide-by-zero error (SQLite silently returned NULL).
+ * divide-by-zero error (SQLite silently returned NULL). FG%/3P% additionally
+ * exclude FG_EXCLUDED_GAME_IDS (makes-only games).
  */
 export function aggregateStatColumns(mode: string): string {
   const fts = hasFreeThrows(mode) ? "+ (fts * 1)" : "";
@@ -33,14 +45,14 @@ export function aggregateStatColumns(mode: string): string {
     AVG(blk)::float8 AS blk,
     AVG(stl)::float8 AS stl,
     AVG(tov)::float8 AS tov,
-    ((COALESCE(SUM(twos), 0) + COALESCE(SUM(threes), 0))::numeric
-      / NULLIF(COALESCE(SUM("twosAttempted"), 0) + COALESCE(SUM("threesAttempted"), 0), 0))::float8 AS fg,
+    (SUM(CASE WHEN ${fgCountsClause} THEN twos + threes ELSE 0 END)::numeric
+      / NULLIF(SUM(CASE WHEN ${fgCountsClause} THEN "twosAttempted" + "threesAttempted" ELSE 0 END), 0))::float8 AS fg,
     AVG("twosAttempted")::float8 AS "tpfgA",
     AVG(twos)::float8 AS "tpfgM",
     AVG("threesAttempted")::float8 AS "ttpfgA",
     AVG(threes)::float8 AS "ttpfgM",
-    (COALESCE(SUM(threes), 0)::numeric
-      / NULLIF(COALESCE(SUM("threesAttempted"), 0), 0))::float8 AS tp`;
+    (SUM(CASE WHEN ${fgCountsClause} THEN threes ELSE 0 END)::numeric
+      / NULLIF(SUM(CASE WHEN ${fgCountsClause} THEN "threesAttempted" ELSE 0 END), 0))::float8 AS tp`;
 }
 
 export function calculateImpressiveIndex(

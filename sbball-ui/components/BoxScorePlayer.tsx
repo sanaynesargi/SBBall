@@ -58,7 +58,11 @@ export const BoxScorePlayer = ({
         <RealStatShort statName="ast" statNum={Math.round(ast)} sm />
         <RealStatShort statName="stl" statNum={Math.round(stl)} sm />
         <RealStatShort statName="blk" statNum={Math.round(blk)} sm />
-        <RealStatShort statName="fg" statNum={(fg * 100).toFixed(2) + "%"} sm />
+        <RealStatShort
+          statName="fg"
+          statNum={fg == null ? "—" : (fg * 100).toFixed(2) + "%"}
+          sm
+        />
       </SimpleGrid>
     </VStack>
   );

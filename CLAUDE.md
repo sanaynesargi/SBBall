@@ -48,6 +48,8 @@ SQLite → Postgres introduced three rules the schema and queries depend on:
 
 Check both branches when touching stats queries or rating logic. There are also two play-by-play tables, `game_feed` (playoffs) and `game_feed2` (regular).
 
+**FG%/3P% exclusions**: `FG_EXCLUDED_GAME_IDS` in `statHelpers.ts` (currently games 20 & 23) are dropped from the FG%/3P% aggregates only — they were logged makes-only (every shot reads 100%), a data-entry artifact. All other stats (points, rebounds, …) still include them. A null FG% (excluded or zero-attempt game) renders as "—".
+
 **Playoff series**: `games.series` (INTEGER, default 1) groups playoff games into series. `endGame` defaults a new playoff game to the current ongoing series (`MAX(series)` among 4v4 games) unless the client sends one; the live tracker's End Game modal can "start new series" (current+1). `getPlayerAverages?mode=4v4&series=N` filters to a series; `getSeries` lists them. The main page shows a "By Series" filter in Playoffs mode. Regular-season games stay series 1.
 
 ### Play-by-play feed
