@@ -1032,6 +1032,76 @@ const Home = () => {
     );
   };
 
+  const hasGame =
+    players.length > 0 || team1.length > 0 || team2.length > 0;
+
+  const clearGame = () => {
+    localStorage.setItem("gameState", "[]");
+    localStorage.setItem("T1", "");
+    localStorage.setItem("T2", "");
+    localStorage.setItem("gameFeed", "[]");
+    setPlayers([]);
+    setTeam1([]);
+    setTeam2([]);
+    setScore1([0, 0]);
+    setScore2([0, 0]);
+    setFeed([]);
+  };
+
+  const ClearGameButton = () => {
+    const { isOpen, onOpen, onClose } = useDisclosure();
+    return (
+      <>
+        <Button
+          variant="ghostMuted"
+          color="neg.500"
+          onClick={onOpen}
+          isDisabled={!hasGame}
+        >
+          Clear
+        </Button>
+
+        <Modal isOpen={isOpen} onClose={onClose} isCentered>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader fontFamily="heading" fontWeight={800}>
+              Clear current game?
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <Text color="text.muted">
+                This discards the in-progress game — teams, score, and feed —
+                without saving it. This can’t be undone.
+              </Text>
+            </ModalBody>
+            <ModalFooter gap={3}>
+              <Button variant="ghostMuted" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button
+                bg="neg.500"
+                color="white"
+                _hover={{ opacity: 0.9 }}
+                onClick={() => {
+                  clearGame();
+                  toast({
+                    title: "Game cleared",
+                    status: "info",
+                    duration: 2000,
+                    isClosable: true,
+                  });
+                  onClose();
+                }}
+              >
+                Clear Game
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      </>
+    );
+  };
+
   const getFouls = (tm: number) => {
     let tot = 0;
     let team = tm == 1 ? team1 : team2;
@@ -1089,7 +1159,10 @@ const Home = () => {
             </VStack>
           </HStack>
 
-          <EndGameModal />
+          <HStack spacing={2}>
+            <ClearGameButton />
+            <EndGameModal />
+          </HStack>
         </Flex>
 
         {/* Controls */}
