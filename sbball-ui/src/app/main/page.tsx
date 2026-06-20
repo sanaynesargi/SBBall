@@ -72,6 +72,13 @@ const numTd = {
   textAlign: "end" as const,
 };
 
+// Numeric headers must be end-aligned too — `isNumeric` doesn't apply alignment
+// under `variant="unstyled"`, so set it explicitly to keep headers over values.
+const numTh = {
+  ...sortableThProps,
+  textAlign: "end" as const,
+};
+
 const SortableTable = ({
   data,
   defaultSortColumn,
@@ -186,19 +193,19 @@ const SortableTable = ({
               <Th {...sortableThProps} onClick={() => handleSort("player")}>
                 Player
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort("pts")}>
+              <Th {...numTh} onClick={() => handleSort("pts")}>
                 PTS
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort("reb")}>
+              <Th {...numTh} onClick={() => handleSort("reb")}>
                 REB
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort("ast")}>
+              <Th {...numTh} onClick={() => handleSort("ast")}>
                 AST
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort("stl")}>
+              <Th {...numTh} onClick={() => handleSort("stl")}>
                 STL
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort("blk")}>
+              <Th {...numTh} onClick={() => handleSort("blk")}>
                 BLK
               </Th>
             </Tr>
@@ -227,22 +234,22 @@ const SortableTable = ({
               <Th {...sortableThProps} onClick={() => handleSort3("player")}>
                 Player
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("fgA")}>
+              <Th {...numTh} onClick={() => handleSort3("fgA")}>
                 FGM
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("fgM")}>
+              <Th {...numTh} onClick={() => handleSort3("fgM")}>
                 FGA
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("tpfgM")}>
+              <Th {...numTh} onClick={() => handleSort3("tpfgM")}>
                 2PM
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("tpfgA")}>
+              <Th {...numTh} onClick={() => handleSort3("tpfgA")}>
                 2PA
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("ttpfgM")}>
+              <Th {...numTh} onClick={() => handleSort3("ttpfgM")}>
                 3PM
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort3("ttpfgA")}>
+              <Th {...numTh} onClick={() => handleSort3("ttpfgA")}>
                 3PA
               </Th>
             </Tr>
@@ -270,13 +277,13 @@ const SortableTable = ({
               <Th {...sortableThProps} onClick={() => handleSort2("player")}>
                 Player
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort2("fg")}>
+              <Th {...numTh} onClick={() => handleSort2("fg")}>
                 FG%
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort2("tp")}>
+              <Th {...numTh} onClick={() => handleSort2("tp")}>
                 3P%
               </Th>
-              <Th {...sortableThProps} isNumeric onClick={() => handleSort2("tov")}>
+              <Th {...numTh} onClick={() => handleSort2("tov")}>
                 TOV
               </Th>
             </Tr>
