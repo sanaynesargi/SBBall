@@ -3,10 +3,10 @@ import { Box, HStack, Avatar, VStack, Text } from "@chakra-ui/react";
 interface FeedEntryProps {
   name: string;
   description: string;
-  stat1Num: number;
-  stat1Name: string;
-  stat2Num: number;
-  stat2Name: string;
+  stat1Num: number | string | null;
+  stat1Name: string | null;
+  stat2Num: number | string | null;
+  stat2Name: string | null;
 }
 
 export const FeedEntry = ({
@@ -47,16 +47,16 @@ export const FeedEntry = ({
               {name}
             </Text>
             <Text color="text.faint">·</Text>
-            <Text
-              letterSpacing="0.04em"
-              textTransform="uppercase"
-              fontWeight={600}
-            >
-              {stat1Num}
-              {" " + stat1Name}
-              {", " + stat2Num}
-              {" " + stat2Name}
-            </Text>
+            {stat1Name ? (
+              <Text
+                letterSpacing="0.04em"
+                textTransform="uppercase"
+                fontWeight={600}
+              >
+                {stat1Num} {stat1Name}
+                {stat2Name ? `, ${stat2Num} ${stat2Name}` : ""}
+              </Text>
+            ) : null}
           </HStack>
         </VStack>
       </HStack>

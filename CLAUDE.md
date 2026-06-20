@@ -48,6 +48,18 @@ SQLite → Postgres introduced three rules the schema and queries depend on:
 
 Check both branches when touching stats queries or rating logic. There are also two play-by-play tables, `game_feed` (playoffs) and `game_feed2` (regular).
 
+### Play-by-play feed
+`utils/gameFeed.ts` is the shared model. During a live game the tracker records a
+feed event per stat tap (`FIELD_TO_FEED_TYPE` → `describeFeedEvent`), kept in
+state + `localStorage` ("gameFeed") and shown in the Stats page "Feed" tab.
+On End Game the feed array is POSTed to `endGame`, which inserts rows into
+`game_feed` (4v4) / `game_feed2` (2v2) with `rel_id` = chronological index.
+`gameView` reads them via `gameFeed` (ORDER BY rel_id DESC). `getStatDataFromDesc`
+classifies a row from its `desc` text (it handles both the new live descriptions
+and the historical "17' jumper"-style ones) to pick which snapshot stat to show.
+Note: tov/fouls are intentionally not in the feed — those tables have no
+snapshot column for them.
+
 ### Frontend
 - App Router pages under `sbball-ui/src/app/`: `/` (live game tracker, the largest), `main/` (league leaders), `create/` (roster/game log/box scores), `gameView/`, `playerInfo/`, `admin/` (dev-only). Pages are `"use client"` and call the **same-origin** `/api/*` via `axios`.
 - `utils/apiUrl.tsx` exports `apiUrl = process.env.NEXT_PUBLIC_API_URL ?? ""` — **empty string = same origin**. Do NOT set `NEXT_PUBLIC_API_URL` in Vercel (a leftover Railway URL there would send traffic off-app).

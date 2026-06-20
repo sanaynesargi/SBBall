@@ -5,6 +5,7 @@ import {
   Text,
   Heading,
   Center,
+  Divider,
   VStack,
   HStack,
   SimpleGrid,
@@ -32,8 +33,15 @@ import {
 import { DeleteIcon } from "@chakra-ui/icons";
 import { useEffect, useReducer, useState, type ReactNode } from "react";
 import Layout from "../../components/Layout.tsx";
+import { FeedEntry } from "../../components/FeedEntry.tsx";
 import axios from "axios";
 import { apiUrl } from "../../utils/apiUrl.tsx";
+import {
+  FIELD_TO_FEED_TYPE,
+  describeFeedEvent,
+  getStatDataFromDesc,
+  type FeedEntry as FeedEntryData,
+} from "../../utils/gameFeed.ts";
 
 interface PlayerDetails {
   position: string;
@@ -89,6 +97,8 @@ interface PlayerDetailsProps {
   score2: number[];
   setScore1: Function;
   setScore2: Function;
+  // feed
+  onFeedEvent?: Function;
 }
 
 // set the teams up
@@ -184,6 +194,7 @@ const Player = ({
   inc,
   compressed,
   fts,
+  onFeedEvent,
 }: PlayerDetailsProps) => {
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
@@ -282,6 +293,29 @@ const Player = ({
     localStorage.setItem("gameState", JSON.stringify(newPlayers));
 
     updatePlayers(newPlayers);
+
+    // Record the play in the live feed (only for fields that map to a feed
+    // event; tov/fouls have no snapshot column and are skipped).
+    const feedType = FIELD_TO_FEED_TYPE[field];
+    if (feedType && onFeedEvent) {
+      const snapshotPts = player.twos * 2 + player.threes * 3 + player.fts * 1;
+      onFeedEvent({
+        inc,
+        entry: {
+          type: feedType,
+          team,
+          playerName: name,
+          desc: describeFeedEvent(feedType),
+          score: `${score1[1]}-${score2[1]}`,
+          snapshotPts,
+          snapshotAst: player.ast,
+          snapshotOffReb: player.offReb,
+          snapshotDefReb: player.defReb,
+          snapshotBlk: player.blk,
+          snapshotStl: player.stl,
+        },
+      });
+    }
   };
 
   const teamColor = team == 1 ? "team1.500" : "team2.500";
@@ -591,6 +625,35 @@ const Home = () => {
   let [score2, setScore2] = useState<number[]>([0, 0]);
   const toast = useToast();
   const [playoffs, setPlayoffs] = useState(false);
+  const [feed, setFeed] = useState<FeedEntryData[]>([]);
+
+  // Add (inc>0) or undo (inc<0) a play in the live feed. Undo removes the most
+  // recent matching event for that player so corrections stay consistent.
+  const handleFeedEvent = ({ inc, entry }: any) => {
+    setFeed((prev) => {
+      let next: FeedEntryData[];
+      if (inc > 0) {
+        next = [...prev, entry];
+      } else {
+        let removeAt = -1;
+        for (let i = prev.length - 1; i >= 0; i--) {
+          if (
+            prev[i].playerName === entry.playerName &&
+            prev[i].type === entry.type
+          ) {
+            removeAt = i;
+            break;
+          }
+        }
+        next =
+          removeAt === -1
+            ? prev
+            : [...prev.slice(0, removeAt), ...prev.slice(removeAt + 1)];
+      }
+      localStorage.setItem("gameFeed", JSON.stringify(next));
+      return next;
+    });
+  };
 
   const createPlayers = async () => {
     const playersReq = await axios.get(`${apiUrl}/api/getPlayers`);
@@ -612,6 +675,8 @@ const Home = () => {
 
     setScore1([0, 0]);
     setScore2([0, 0]);
+    setFeed([]);
+    localStorage.setItem("gameFeed", "[]");
 
     for (const player of team1) {
       players.push({
@@ -706,6 +771,13 @@ const Home = () => {
     setTeam1(JSON.parse(pulledT1));
     setTeam2(JSON.parse(pulledT2));
 
+    const pulledFeed = localStorage.getItem("gameFeed");
+    if (pulledFeed) {
+      try {
+        setFeed(JSON.parse(pulledFeed));
+      } catch {}
+    }
+
     let team1 = JSON.parse(pulledT1);
     let team2 = JSON.parse(pulledT2);
 
@@ -747,6 +819,7 @@ const Home = () => {
                 index={index}
                 players={players}
                 inc={inc}
+                onFeedEvent={handleFeedEvent}
                 setScore1={setScore1}
                 setScore2={setScore2}
               />
@@ -760,6 +833,7 @@ const Home = () => {
                 index={index}
                 players={players}
                 inc={inc}
+                onFeedEvent={handleFeedEvent}
               />
             );
           }
@@ -822,6 +896,7 @@ const Home = () => {
                     index={players.indexOf(player)}
                     players={players}
                     inc={inc}
+                    onFeedEvent={handleFeedEvent}
                     setScore1={setScore1}
                     setScore2={setScore2}
                   />
@@ -836,6 +911,7 @@ const Home = () => {
                     index={players.indexOf(player)}
                     players={players}
                     inc={inc}
+                    onFeedEvent={handleFeedEvent}
                   />
                 );
               }
@@ -907,6 +983,7 @@ const Home = () => {
                     winner: score1 > score2 ? 1 : score2 > score1 ? 2 : 0,
                     mode: playoffs ? "4v4" : "2v2",
                     averageFill,
+                    feed,
                   });
 
                   const error = endGameReq.data.error;
@@ -935,11 +1012,13 @@ const Home = () => {
                   localStorage.setItem("gameState", "[]");
                   localStorage.setItem("T1", "");
                   localStorage.setItem("T2", "");
+                  localStorage.setItem("gameFeed", "[]");
                   setPlayers([]);
                   setTeam1([]);
                   setTeam2([]);
                   setScore1([0, 0]);
                   setScore2([0, 0]);
+                  setFeed([]);
 
                   onClose();
                 }}
@@ -1074,9 +1153,48 @@ const Home = () => {
             )}
           </TabPanel>
           <TabPanel px={0}>
-            <Center h="120px" color="text.faint">
-              Live Game Feed Update Coming Soon
-            </Center>
+            {feed.length === 0 ? (
+              <Center
+                h="160px"
+                color="text.faint"
+                bg="bg.card"
+                border="1px solid"
+                borderColor="border.subtle"
+                borderRadius="card"
+                textAlign="center"
+                px={4}
+              >
+                No plays yet. Tap a stat tile and it shows up here live.
+              </Center>
+            ) : (
+              <VStack
+                w="100%"
+                maxW="640px"
+                mx="auto"
+                spacing={0}
+                align="stretch"
+              >
+                {feed
+                  .map((e, i) => ({ e, i }))
+                  .reverse()
+                  .map(({ e, i }) => {
+                    const d = getStatDataFromDesc(e);
+                    return (
+                      <Box key={i}>
+                        <FeedEntry
+                          name={e.playerName}
+                          description={e.desc}
+                          stat1Num={d.stat1Num}
+                          stat1Name={d.stat1Name}
+                          stat2Num={d.stat2Num}
+                          stat2Name={d.stat2Name}
+                        />
+                        {i > 0 && <Divider borderColor="border.subtle" />}
+                      </Box>
+                    );
+                  })}
+              </VStack>
+            )}
           </TabPanel>
         </TabPanels>
       </Tabs>

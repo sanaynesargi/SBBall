@@ -17,53 +17,7 @@ import axios from "axios";
 import { apiUrl } from "../../../utils/apiUrl";
 import { BoxScoreDisplay } from "../../../components/BoxScoreDisplay";
 import { FeedEntry } from "../../../components/FeedEntry";
-
-const getStatDataFromDesc = (entry: any) => {
-  const desc = entry.desc;
-
-  let retObj: any = {
-    stat1Name: null,
-    stat2Name: null,
-    stat1Num: null,
-    stat2Num: null,
-  };
-
-  if (desc.includes("'")) {
-    // pts, ast
-    retObj.stat1Name = "pt";
-    retObj.stat2Name = "ast";
-    retObj.stat1Num = entry.snapshotPts;
-    retObj.stat2Num = entry.snapshotAst;
-  } else if (desc.includes("assisted")) {
-    // ast, pts
-    retObj.stat1Name = "ast";
-    retObj.stat2Name = "pt";
-    retObj.stat1Num = entry.snapshotAst;
-    retObj.stat2Num = entry.snapshotPts;
-  } else if (desc.includes("steal") || desc.includes("swipe")) {
-    // stl
-    retObj.stat1Name = "stl";
-    retObj.stat1Num = entry.snapshotStl;
-  } else if (desc.includes("block") || desc.includes("rejection")) {
-    // blk
-    retObj.stat1Name = "blk";
-    retObj.stat1Num = entry.snapshotBlk;
-  } else if (desc.includes("offensive")) {
-    // oreb, dreb
-    retObj.stat1Name = "oreb";
-    retObj.stat2Name = "dreb";
-    retObj.stat1Num = entry.snapshotOffReb;
-    retObj.stat2Num = entry.snapshotDefReb;
-  } else if (desc.includes("defensive")) {
-    // dreb, oreb
-    retObj.stat1Name = "dreb";
-    retObj.stat2Name = "oreb";
-    retObj.stat1Num = entry.snapshotDefReb;
-    retObj.stat2Num = entry.snapshotOffReb;
-  }
-
-  return retObj;
-};
+import { getStatDataFromDesc } from "../../../utils/gameFeed";
 
 function convertDate(dateString: string) {
   const dateParts: any = dateString.trim().split("/");

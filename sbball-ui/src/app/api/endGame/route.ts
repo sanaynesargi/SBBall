@@ -146,6 +146,39 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Persist the play-by-play feed, if the client recorded one.
+    // game_feed = playoffs (4v4), game_feed2 = regular season (2v2).
+    const feed = reqBody.feed;
+    if (Array.isArray(feed) && feed.length > 0) {
+      const feedTable = isPlayoff ? "game_feed" : "game_feed2";
+      const params: unknown[] = [];
+      const tuples = feed.map((e: any, i: number) => {
+        const b = params.length;
+        params.push(
+          i, // rel_id — chronological; gameFeed reads ORDER BY rel_id DESC
+          e.playerName,
+          e.desc,
+          e.score ?? "",
+          e.snapshotPts ?? 0,
+          e.snapshotAst ?? 0,
+          e.snapshotOffReb ?? 0,
+          e.snapshotDefReb ?? 0,
+          e.snapshotBlk ?? 0,
+          e.snapshotStl ?? 0,
+          gameId
+        );
+        return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11})`;
+      });
+
+      await query(
+        `INSERT INTO ${feedTable}
+           (rel_id, "playerName", "desc", score, "snapshotPts", "snapshotAst",
+            "snapshotOffReb", "snapshotDefReb", "snapshotBlk", "snapshotStl", "gameId")
+         VALUES ${tuples.join(", ")}`,
+        params
+      );
+    }
+
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json({ error: String(e) });
