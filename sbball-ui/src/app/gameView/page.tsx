@@ -17,7 +17,7 @@ import axios from "axios";
 import { apiUrl } from "../../../utils/apiUrl";
 import { BoxScoreDisplay } from "../../../components/BoxScoreDisplay";
 import { FeedEntry } from "../../../components/FeedEntry";
-import { getStatDataFromDesc } from "../../../utils/gameFeed";
+import { getStatDataFromDesc, isClockEvent } from "../../../utils/gameFeed";
 
 function convertDate(dateString: string) {
   const dateParts: any = dateString.trim().split("/");
@@ -197,6 +197,7 @@ const GameView = () => {
             return (
               <Box key={index}>
                 <FeedEntry
+                  system={isClockEvent(entry)}
                   name={entry.playerName}
                   description={entry.desc}
                   stat1Num={feedData.stat1Num}

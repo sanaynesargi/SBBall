@@ -60,7 +60,11 @@ On End Game the feed array is POSTed to `endGame`, which inserts rows into
 classifies a row from its `desc` text (it handles both the new live descriptions
 and the historical "17' jumper"-style ones) to pick which snapshot stat to show.
 Note: tov/fouls are intentionally not in the feed — those tables have no
-snapshot column for them.
+snapshot column for them. The live tracker also has a count-up game **clock**
+(start/pause/reset, persisted in localStorage across reloads) that logs
+start/stop into the feed as "system" events (empty `playerName`, desc starting
+with "Clock"); `isClockEvent` detects them and `FeedEntry system` renders them
+as a centered row with no avatar.
 
 ### Frontend
 - App Router pages under `sbball-ui/src/app/`: `/` (live game tracker, the largest), `main/` (league leaders), `create/` (roster/game log/box scores), `gameView/`, `playerInfo/`, `admin/` (dev-only). Pages are `"use client"` and call the **same-origin** `/api/*` via `axios`.

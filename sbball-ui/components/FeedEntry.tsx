@@ -1,4 +1,4 @@
-import { Box, HStack, Avatar, VStack, Text } from "@chakra-ui/react";
+import { Box, Flex, HStack, Avatar, VStack, Text } from "@chakra-ui/react";
 
 interface FeedEntryProps {
   name: string;
@@ -7,6 +7,7 @@ interface FeedEntryProps {
   stat1Name: string | null;
   stat2Num: number | string | null;
   stat2Name: string | null;
+  system?: boolean;
 }
 
 export const FeedEntry = ({
@@ -16,7 +17,25 @@ export const FeedEntry = ({
   stat2Name,
   stat1Num,
   stat2Num,
+  system,
 }: FeedEntryProps) => {
+  // System/clock events: centered, no avatar or stats.
+  if (system) {
+    return (
+      <Flex align="center" justify="center" gap={2.5} py={3} color="text.muted">
+        <Box w="6px" h="6px" borderRadius="full" bg="accent.400" flexShrink={0} />
+        <Text
+          fontSize="sm"
+          fontWeight={700}
+          letterSpacing="0.04em"
+          textTransform="uppercase"
+        >
+          {description}
+        </Text>
+      </Flex>
+    );
+  }
+
   return (
     <Box
       w="100%"

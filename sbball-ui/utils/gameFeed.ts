@@ -16,7 +16,9 @@ export type FeedEventType =
   | "oreb"
   | "dreb"
   | "stl"
-  | "blk";
+  | "blk"
+  | "clock_start"
+  | "clock_stop";
 
 // updateStats() field -> feed event type. Fields not listed here (tov, fouls,
 // twosAttempted handled below) are simply not recorded in the feed because the
@@ -56,7 +58,20 @@ export function describeFeedEvent(type: FeedEventType): string {
       return "came up with a steal";
     case "blk":
       return "swatted a block";
+    case "clock_start":
+      return "Clock started";
+    case "clock_stop":
+      return "Clock stopped";
   }
+}
+
+// Clock/system events aren't tied to a player and render as a centered row.
+export function isClockEvent(entry: any): boolean {
+  const t = entry?.type;
+  if (typeof t === "string" && t.startsWith("clock")) return true;
+  return String(entry?.desc ?? "")
+    .toLowerCase()
+    .startsWith("clock");
 }
 
 export interface FeedEntry {

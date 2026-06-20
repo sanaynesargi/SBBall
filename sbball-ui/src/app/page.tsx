@@ -40,6 +40,7 @@ import {
   FIELD_TO_FEED_TYPE,
   describeFeedEvent,
   getStatDataFromDesc,
+  isClockEvent,
   type FeedEntry as FeedEntryData,
 } from "../../utils/gameFeed.ts";
 
@@ -617,6 +618,13 @@ const transformData = (data: Array<any>) => {
   return dataObj;
 };
 
+const fmtClock = (totalSeconds: number) => {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const m = Math.floor(s / 60);
+  const ss = s % 60;
+  return `${m}:${String(ss).padStart(2, "0")}`;
+};
+
 const Home = () => {
   let [players, setPlayers] = useState<PlayerDetails[]>([]);
   let [team1, setTeam1] = useState<string[]>([]);
@@ -655,6 +663,77 @@ const Home = () => {
     });
   };
 
+  // ---- Game clock (count-up stopwatch) ----
+  const [clockRunning, setClockRunning] = useState(false);
+  const [clockBase, setClockBase] = useState(0); // accumulated seconds while paused
+  const [clockStartedAt, setClockStartedAt] = useState<number | null>(null);
+  const [, setClockTick] = useState(0); // forces re-render each second while running
+
+  const elapsed =
+    clockBase +
+    (clockRunning && clockStartedAt
+      ? Math.floor((Date.now() - clockStartedAt) / 1000)
+      : 0);
+
+  useEffect(() => {
+    if (!clockRunning) return;
+    const id = setInterval(() => setClockTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [clockRunning]);
+
+  const pushClockFeed = (type: "clock_start" | "clock_stop", desc: string) => {
+    handleFeedEvent({
+      inc: 1,
+      entry: {
+        type,
+        team: 0,
+        playerName: "",
+        desc,
+        score: `${score1[1]}-${score2[1]}`,
+        snapshotPts: 0,
+        snapshotAst: 0,
+        snapshotOffReb: 0,
+        snapshotDefReb: 0,
+        snapshotBlk: 0,
+        snapshotStl: 0,
+      },
+    });
+  };
+
+  const startClock = () => {
+    const startedAt = Date.now();
+    setClockStartedAt(startedAt);
+    setClockRunning(true);
+    localStorage.setItem("clockRunning", "true");
+    localStorage.setItem("clockStartedAt", String(startedAt));
+    pushClockFeed(
+      "clock_start",
+      clockBase === 0 ? "Clock started" : `Clock resumed at ${fmtClock(clockBase)}`
+    );
+  };
+
+  const stopClock = () => {
+    const acc =
+      clockBase +
+      (clockStartedAt ? Math.floor((Date.now() - clockStartedAt) / 1000) : 0);
+    setClockBase(acc);
+    setClockRunning(false);
+    setClockStartedAt(null);
+    localStorage.setItem("clockBase", String(acc));
+    localStorage.setItem("clockRunning", "false");
+    localStorage.removeItem("clockStartedAt");
+    pushClockFeed("clock_stop", `Clock stopped at ${fmtClock(acc)}`);
+  };
+
+  const resetClock = () => {
+    setClockBase(0);
+    setClockRunning(false);
+    setClockStartedAt(null);
+    localStorage.setItem("clockBase", "0");
+    localStorage.setItem("clockRunning", "false");
+    localStorage.removeItem("clockStartedAt");
+  };
+
   const createPlayers = async () => {
     const playersReq = await axios.get(`${apiUrl}/api/getPlayers`);
 
@@ -677,6 +756,7 @@ const Home = () => {
     setScore2([0, 0]);
     setFeed([]);
     localStorage.setItem("gameFeed", "[]");
+    resetClock();
 
     for (const player of team1) {
       players.push({
@@ -776,6 +856,15 @@ const Home = () => {
       try {
         setFeed(JSON.parse(pulledFeed));
       } catch {}
+    }
+
+    // Restore the game clock (accurate across reloads via the start timestamp).
+    const cBase = Number(localStorage.getItem("clockBase") ?? "0") || 0;
+    setClockBase(cBase);
+    if (localStorage.getItem("clockRunning") === "true") {
+      const startedAt = Number(localStorage.getItem("clockStartedAt")) || Date.now();
+      setClockStartedAt(startedAt);
+      setClockRunning(true);
     }
 
     let team1 = JSON.parse(pulledT1);
@@ -1069,6 +1158,7 @@ const Home = () => {
                   setScore1([0, 0]);
                   setScore2([0, 0]);
                   setFeed([]);
+                  resetClock();
 
                   onClose();
                 }}
@@ -1096,6 +1186,7 @@ const Home = () => {
     setScore1([0, 0]);
     setScore2([0, 0]);
     setFeed([]);
+    resetClock();
   };
 
   const ClearGameButton = () => {
@@ -1215,6 +1306,51 @@ const Home = () => {
           </HStack>
         </Flex>
 
+        {/* Game clock */}
+        <Flex
+          align="center"
+          justify="center"
+          gap={3}
+          mt={4}
+          pt={4}
+          borderTop="1px solid"
+          borderColor="border.subtle"
+        >
+          <Flex align="center" gap={2}>
+            <Box
+              w="8px"
+              h="8px"
+              borderRadius="full"
+              bg={clockRunning ? "accent.400" : "text.faint"}
+              boxShadow={clockRunning ? "0 0 10px rgba(70,238,156,0.7)" : "none"}
+            />
+            <Heading
+              fontFamily="mono"
+              fontSize={{ base: "2xl", md: "3xl" }}
+              lineHeight={1}
+              sx={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              {fmtClock(elapsed)}
+            </Heading>
+          </Flex>
+          <Button
+            size="sm"
+            variant={clockRunning ? "surface" : "accent"}
+            minW="76px"
+            onClick={clockRunning ? stopClock : startClock}
+          >
+            {clockRunning ? "Pause" : "Start"}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghostMuted"
+            onClick={resetClock}
+            isDisabled={clockRunning || elapsed === 0}
+          >
+            Reset
+          </Button>
+        </Flex>
+
         {/* Controls */}
         <Flex align="center" justify="space-between" gap={3} mt={4} wrap="wrap">
           <FoulPill team="Team 1" color="team1.500" value={getFouls(1)} />
@@ -1305,6 +1441,7 @@ const Home = () => {
                     return (
                       <Box key={i}>
                         <FeedEntry
+                          system={isClockEvent(e)}
                           name={e.playerName}
                           description={e.desc}
                           stat1Num={d.stat1Num}
