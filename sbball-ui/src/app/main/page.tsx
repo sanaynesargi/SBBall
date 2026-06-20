@@ -345,15 +345,69 @@ const ModeToggle = ({
   </Flex>
 );
 
+const SeriesPill = ({
+  label,
+  hint,
+  active,
+  onClick,
+}: {
+  label: string;
+  hint?: string;
+  active: boolean;
+  onClick: () => void;
+}) => (
+  <Flex
+    px={3}
+    h="32px"
+    align="center"
+    gap={1.5}
+    borderRadius="full"
+    cursor="pointer"
+    fontSize="sm"
+    fontWeight={700}
+    border="1px solid"
+    borderColor={active ? "accent.500" : "border.subtle"}
+    bg={active ? "accent.500" : "bg.surface"}
+    color={active ? "accent.fg" : "text.muted"}
+    _hover={active ? {} : { color: "text.primary", borderColor: "accent.500" }}
+    onClick={onClick}
+  >
+    {label}
+    {hint ? (
+      <Box as="span" fontSize="xs" opacity={0.7}>
+        ({hint})
+      </Box>
+    ) : null}
+  </Flex>
+);
+
 const Home = () => {
   const [tableData, setTableData] = useState([]);
   const [mode, setMode] = useState(false);
+  const [series, setSeries] = useState<string>("all");
+  const [seriesList, setSeriesList] = useState<{ series: number; games: number }[]>([]);
   const toast = useToast();
+
+  // Available playoff series (only relevant in playoffs mode).
+  useEffect(() => {
+    if (!mode) {
+      setSeriesList([]);
+      return;
+    }
+    const fetchSeries = async () => {
+      try {
+        const res = await axios.get(`${apiUrl}/api/getSeries?mode=4v4`);
+        if (!res.data.error) setSeriesList(res.data.series ?? []);
+      } catch {}
+    };
+    fetchSeries();
+  }, [mode]);
 
   useEffect(() => {
     const fetchPlayerData = async () => {
+      const seriesQ = mode && series !== "all" ? `&series=${series}` : "";
       const playerDataReq = await axios.get(
-        `${apiUrl}/api/getPlayerAverages?mode=${mode ? "4v4" : "2v2"}`
+        `${apiUrl}/api/getPlayerAverages?mode=${mode ? "4v4" : "2v2"}${seriesQ}`
       );
 
       const error = playerDataReq.data.error;
@@ -373,7 +427,12 @@ const Home = () => {
     };
 
     fetchPlayerData();
-  }, [mode]);
+  }, [mode, series]);
+
+  const switchMode = () => {
+    setSeries("all");
+    setMode(!mode);
+  };
 
   return (
     <Layout>
@@ -387,11 +446,12 @@ const Home = () => {
         <Box>
           <Heading fontSize={{ base: "2xl", md: "3xl" }}>League Leaders</Heading>
           <Text color="text.muted" fontSize="sm" mt={1}>
-            Career averages across all {mode ? "playoff" : "regular season"} games
+            {mode ? "Playoff" : "Regular season"} averages
+            {mode && series !== "all" ? ` · Series ${series}` : ""}
           </Text>
         </Box>
         <HStack spacing={3} justify={{ base: "space-between", sm: "flex-end" }}>
-          <ModeToggle mode={mode} onToggle={() => setMode(!mode)} />
+          <ModeToggle mode={mode} onToggle={switchMode} />
           <Link href="/compare" passHref legacyBehavior>
             <Button as="a" variant="surface" size="md">
               Compare
@@ -399,6 +459,28 @@ const Home = () => {
           </Link>
         </HStack>
       </Flex>
+
+      {mode && seriesList.length > 0 && (
+        <Flex align="center" gap={2} mb={5} wrap="wrap">
+          <Text fontSize="sm" fontWeight={800} color="text.muted" mr={1}>
+            By Series
+          </Text>
+          <SeriesPill
+            label="All"
+            active={series === "all"}
+            onClick={() => setSeries("all")}
+          />
+          {seriesList.map((s) => (
+            <SeriesPill
+              key={s.series}
+              label={`Series ${s.series}`}
+              hint={`${s.games}`}
+              active={series === String(s.series)}
+              onClick={() => setSeries(String(s.series))}
+            />
+          ))}
+        </Flex>
+      )}
 
       {tableData.length === 0 ? (
         <Flex

@@ -5,17 +5,27 @@ import { aggregateStatColumns, statsTable } from "@/lib/statHelpers";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const mode = req.nextUrl.searchParams.get("mode") ?? "2v2";
+  const params = req.nextUrl.searchParams;
+  const mode = params.get("mode") ?? "2v2";
+  const seriesParam = params.get("series");
   const pc = mode === "2v2" ? 2 : 4;
   const table = statsTable(mode);
+
+  // Optional playoff series filter (ignored for regular season / "all").
+  const queryParams: unknown[] = [pc];
+  let seriesClause = "";
+  if (seriesParam && seriesParam !== "all" && mode !== "2v2") {
+    queryParams.push(Number(seriesParam));
+    seriesClause = ` AND games.series = $${queryParams.length}`;
+  }
 
   try {
     const rows = await query<any>(
       `SELECT "playerName", ${aggregateStatColumns(mode)}
        FROM ${table} INNER JOIN games ON "gameId" = games.id
-       WHERE "playerCount" = $1
+       WHERE "playerCount" = $1${seriesClause}
        GROUP BY "playerName"`,
-      [pc]
+      queryParams
     );
 
     const dataObj = rows.map((row) => ({

@@ -925,6 +925,22 @@ const Home = () => {
   const EndGameModal = () => {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [averageFill, setAverageFill] = useState(false);
+    const [currentSeries, setCurrentSeries] = useState(1);
+    const [newSeries, setNewSeries] = useState(false);
+
+    // Pull the ongoing playoff series when the modal opens (default target).
+    useEffect(() => {
+      if (!isOpen || !playoffs) return;
+      const fetchSeries = async () => {
+        try {
+          const res = await axios.get(`${apiUrl}/api/getSeries?mode=4v4`);
+          if (!res.data.error) setCurrentSeries(res.data.current ?? 1);
+        } catch {}
+      };
+      fetchSeries();
+    }, [isOpen]);
+
+    const targetSeries = newSeries ? currentSeries + 1 : currentSeries;
 
     return (
       <>
@@ -968,6 +984,39 @@ const Home = () => {
                 />
               </Flex>
 
+              {playoffs ? (
+                <Flex
+                  align="center"
+                  justify="space-between"
+                  bg="bg.surface"
+                  border="1px solid"
+                  borderColor="border.subtle"
+                  borderRadius="tile"
+                  px={4}
+                  py={3}
+                  mt={3}
+                >
+                  <Box>
+                    <Text fontWeight={700}>
+                      Series {targetSeries}
+                      {newSeries ? " (new)" : ""}
+                    </Text>
+                    <Text fontSize="xs" color="text.faint">
+                      {newSeries
+                        ? "Starts a fresh series"
+                        : "Adds to the ongoing series"}
+                    </Text>
+                  </Box>
+                  <Button
+                    size="sm"
+                    variant={newSeries ? "accent" : "surface"}
+                    onClick={() => setNewSeries(!newSeries)}
+                  >
+                    {newSeries ? "New series" : "Start new series"}
+                  </Button>
+                </Flex>
+              ) : null}
+
               <Text mt={5} fontWeight="bold">
                 Make sure everything looks good!
               </Text>
@@ -984,6 +1033,7 @@ const Home = () => {
                     mode: playoffs ? "4v4" : "2v2",
                     averageFill,
                     feed,
+                    series: playoffs ? targetSeries : 1,
                   });
 
                   const error = endGameReq.data.error;

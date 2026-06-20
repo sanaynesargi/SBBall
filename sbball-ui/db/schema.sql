@@ -33,7 +33,9 @@ CREATE TABLE IF NOT EXISTS games (
   team2         TEXT,
   "playerCount" INTEGER,
   winner        INTEGER,
-  date          TEXT
+  date          TEXT,
+  -- Playoff series number (1-based). Regular-season games stay 1.
+  series        INTEGER DEFAULT 1
 );
 
 -- Non-shooting counting stats (ast/blk/defReb/fouls/offReb/stl/tov) are

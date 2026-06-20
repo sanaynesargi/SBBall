@@ -73,12 +73,26 @@ export async function POST(req: NextRequest) {
     const playerCount = mode === "4v4" ? 4 : team1.length;
     const date = getTodayDate();
 
+    // Series attribution. If the client doesn't specify one, default to the
+    // currently ongoing playoff series (max). Regular-season games stay 1.
+    let series = reqBody.series;
+    if (series == null) {
+      if (isPlayoff) {
+        const r = await query<{ m: number }>(
+          'SELECT COALESCE(MAX(series), 1) AS m FROM games WHERE "playerCount" = 4'
+        );
+        series = r[0].m;
+      } else {
+        series = 1;
+      }
+    }
+
     // Insert the game and grab its id atomically (replaces the old
     // insert-then-SELECT-MAX(id) race condition).
     const gameRows = await query<{ id: number }>(
-      `INSERT INTO games (team1, team2, "playerCount", winner, date)
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [team1Str, team2Str, playerCount, winner, date]
+      `INSERT INTO games (team1, team2, "playerCount", winner, date, series)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [team1Str, team2Str, playerCount, winner, date, series]
     );
     const gameId = gameRows[0].id;
 
