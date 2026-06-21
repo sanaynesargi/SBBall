@@ -6,4 +6,5 @@ export interface PlayerDetails {
   secPosition?: string;
   height: string;
   nickname?: string;
+  weight?: number | null;
 }

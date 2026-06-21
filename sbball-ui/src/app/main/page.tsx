@@ -381,12 +381,129 @@ const SeriesPill = ({
   </Flex>
 );
 
+// "6'3\"" / "6’3”" -> inches. Returns null if unparseable.
+const parseHeightInches = (h?: string): number | null => {
+  if (!h) return null;
+  const m = String(h).match(/(\d+)\D+(\d+)/);
+  if (m) return parseInt(m[1]) * 12 + parseInt(m[2]);
+  const single = String(h).match(/(\d+)/);
+  return single ? parseInt(single[1]) : null;
+};
+
+const EmptyCard = ({ children }: { children: ReactNode }) => (
+  <Flex
+    h="200px"
+    align="center"
+    justify="center"
+    textAlign="center"
+    px={6}
+    color="text.faint"
+    bg="bg.card"
+    border="1px solid"
+    borderColor="border.subtle"
+    borderRadius="card"
+  >
+    {children}
+  </Flex>
+);
+
+const NORM_COLS = ["pts", "reb", "ast", "stl", "blk"] as const;
+
+// "Just for fun" per-unit table: stats divided by height (inches) or weight (lbs).
+const NormalizedTable = ({
+  rows,
+  unit,
+}: {
+  rows: any[];
+  unit: "inch" | "pound";
+}) => {
+  const [sortBy, setSortBy] = useState<string>("pts");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const handle = (c: string) => {
+    if (sortBy === c) setOrder((o) => (o === "asc" ? "desc" : "asc"));
+    else {
+      setSortBy(c);
+      setOrder("desc");
+    }
+  };
+  const sorted = [...rows].sort((a, b) => {
+    if (sortBy === "player")
+      return order === "desc"
+        ? String(b.player).localeCompare(a.player)
+        : String(a.player).localeCompare(b.player);
+    return order === "desc" ? b[sortBy] - a[sortBy] : a[sortBy] - b[sortBy];
+  });
+
+  return (
+    <TableCard
+      title={unit === "inch" ? "Inch for Inch" : "Pound for Pound"}
+      hint={unit === "inch" ? "PER INCH OF HEIGHT" : "PER POUND"}
+    >
+      <Table size="sm" variant="unstyled">
+        <Thead>
+          <Tr>
+            <Th {...sortableThProps} onClick={() => handle("player")}>
+              Player
+            </Th>
+            {NORM_COLS.map((k) => (
+              <Th key={k} {...numTh} onClick={() => handle(k)}>
+                {k.toUpperCase()}
+              </Th>
+            ))}
+          </Tr>
+        </Thead>
+        <Tbody>
+          {sorted.map((r, i) => (
+            <Tr key={i} _hover={{ bg: "bg.hover" }}>
+              <Td
+                fontFamily="heading"
+                fontWeight={800}
+                color="text.primary"
+                whiteSpace="nowrap"
+              >
+                {r.player}
+              </Td>
+              {NORM_COLS.map((k, ci) => (
+                <Td key={k} {...numTd} color={ci === 0 ? "accent.400" : undefined}>
+                  {r[k].toFixed(3)}
+                </Td>
+              ))}
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </TableCard>
+  );
+};
+
 const Home = () => {
   const [tableData, setTableData] = useState([]);
   const [mode, setMode] = useState(false);
   const [series, setSeries] = useState<string>("all");
   const [seriesList, setSeriesList] = useState<{ series: number; games: number }[]>([]);
+  const [normalize, setNormalize] = useState<"total" | "inch" | "pound">("total");
+  const [playerMeta, setPlayerMeta] = useState<
+    Record<string, { h: number | null; w: number | null }>
+  >({});
   const toast = useToast();
+
+  // Player height/weight for the "just for fun" per-unit views.
+  useEffect(() => {
+    const fetchPlayers = async () => {
+      try {
+        const res = await axios.get(`${apiUrl}/api/getPlayers`);
+        const map: Record<string, { h: number | null; w: number | null }> = {};
+        for (const p of res.data.data ?? []) {
+          map[p.playerName] = {
+            h: parseHeightInches(p.height),
+            w: p.weight ?? null,
+          };
+        }
+        setPlayerMeta(map);
+      } catch {}
+    };
+    fetchPlayers();
+  }, []);
 
   // Available playoff series (only relevant in playoffs mode).
   useEffect(() => {
@@ -433,6 +550,25 @@ const Home = () => {
     setSeries("all");
     setMode(!mode);
   };
+
+  const normalizedRows = (() => {
+    if (normalize === "total") return [] as any[];
+    const out: any[] = [];
+    for (const row of tableData as any[]) {
+      const meta = playerMeta[row.player];
+      const factor = normalize === "inch" ? meta?.h : meta?.w;
+      if (!factor) continue;
+      out.push({
+        player: row.player,
+        pts: row.pts / factor,
+        reb: row.reb / factor,
+        ast: row.ast / factor,
+        stl: row.stl / factor,
+        blk: row.blk / factor,
+      });
+    }
+    return out;
+  })();
 
   return (
     <Layout>
@@ -482,20 +618,31 @@ const Home = () => {
         </Flex>
       )}
 
+      {/* Just-for-fun per-size views */}
+      <Flex align="center" gap={2} mb={5} wrap="wrap">
+        <Text fontSize="sm" fontWeight={800} color="text.muted" mr={1}>
+          For Fun
+        </Text>
+        <SeriesPill
+          label="Totals"
+          active={normalize === "total"}
+          onClick={() => setNormalize("total")}
+        />
+        <SeriesPill
+          label="Inch for inch"
+          active={normalize === "inch"}
+          onClick={() => setNormalize("inch")}
+        />
+        <SeriesPill
+          label="Pound for pound"
+          active={normalize === "pound"}
+          onClick={() => setNormalize("pound")}
+        />
+      </Flex>
+
       {tableData.length === 0 ? (
-        <Flex
-          h="200px"
-          align="center"
-          justify="center"
-          color="text.faint"
-          bg="bg.card"
-          border="1px solid"
-          borderColor="border.subtle"
-          borderRadius="card"
-        >
-          No games logged yet for this mode.
-        </Flex>
-      ) : (
+        <EmptyCard>No games logged yet for this mode.</EmptyCard>
+      ) : normalize === "total" ? (
         <SortableTable
           data={tableData}
           defaultSortColumn="pts"
@@ -503,6 +650,14 @@ const Home = () => {
           defaultSortColumn3="fgA"
           defaultSortOrder="desc"
         />
+      ) : normalizedRows.length === 0 ? (
+        <EmptyCard>
+          {normalize === "pound"
+            ? "Add player weights (edit a player in the Roster tab) to see pound-for-pound."
+            : "No height data available for these players."}
+        </EmptyCard>
+      ) : (
+        <NormalizedTable rows={normalizedRows} unit={normalize} />
       )}
     </Layout>
   );

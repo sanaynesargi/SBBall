@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS players (
   position     TEXT,
   "secPosition" TEXT,
   height       TEXT,
-  nickname     TEXT
+  nickname     TEXT,
+  weight       INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS awards (

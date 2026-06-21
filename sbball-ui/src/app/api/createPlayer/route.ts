@@ -7,9 +7,17 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     await query(
-      `INSERT INTO players ("playerName", jersey, position, "secPosition", height, nickname)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [body.name, body.jersey, body.position, body.secPosition, body.height, body.nickname]
+      `INSERT INTO players ("playerName", jersey, position, "secPosition", height, nickname, weight)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        body.name,
+        body.jersey,
+        body.position,
+        body.secPosition,
+        body.height,
+        body.nickname,
+        body.weight ?? null,
+      ]
     );
     return NextResponse.json({ success: true });
   } catch (e) {

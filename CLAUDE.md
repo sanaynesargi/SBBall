@@ -70,6 +70,13 @@ start/stop into the feed as "system" events (empty `playerName`, desc starting
 with "Clock"); `isClockEvent` detects them and `FeedEntry system` renders them
 as a centered row with no avatar.
 
+### "For fun" per-size views
+`players.weight` (INTEGER lbs, nullable, editable in the create/edit player
+forms). The stats screen has a Totals / Inch-for-inch / Pound-for-pound toggle
+that divides per-game stats by height (parsed from the `height` string to
+inches) or weight, client-side (`main/page.tsx`, `NormalizedTable`). Pound-for-
+pound shows an empty state until weights are entered.
+
 ### Frontend
 - App Router pages under `sbball-ui/src/app/`: `/` (live game tracker, the largest), `main/` (league leaders), `create/` (roster/game log/box scores), `gameView/`, `playerInfo/`, `admin/` (dev-only). Pages are `"use client"` and call the **same-origin** `/api/*` via `axios`.
 - `utils/apiUrl.tsx` exports `apiUrl = process.env.NEXT_PUBLIC_API_URL ?? ""` — **empty string = same origin**. Do NOT set `NEXT_PUBLIC_API_URL` in Vercel (a leftover Railway URL there would send traffic off-app).

@@ -45,6 +45,7 @@ export const PlayerCreateModal = ({
   let [pos, setPos] = useState("");
   let [pos2, setPos2] = useState("");
   let [height, setHeight] = useState("");
+  let [weight, setWeight] = useState("");
 
   const labelProps = {
     color: "text.muted",
@@ -136,6 +137,17 @@ export const PlayerCreateModal = ({
                   </Box>
 
                   <Box w="100%">
+                    <FormLabel {...labelProps}>Weight (lbs, opt.)</FormLabel>
+                    <Input
+                      {...inputProps}
+                      type="number"
+                      placeholder="e.g. 185"
+                      onChange={(e) => setWeight(e.target.value)}
+                      value={weight}
+                    />
+                  </Box>
+
+                  <Box w="100%">
                     <FormLabel {...labelProps}>Sec. Position (Opt.)</FormLabel>
                     <PositionSelect setPos={setPos2} sec />
                   </Box>
@@ -164,6 +176,7 @@ export const PlayerCreateModal = ({
                   position: pos,
                   secPosition: pos2 ? pos2 : "",
                   nickname: nickName ? nickName : "",
+                  weight: weight ? parseInt(weight) : null,
                 };
 
                 // send request to server to insert player

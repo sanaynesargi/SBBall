@@ -66,6 +66,7 @@ const AddPlayers = () => {
           position: row.position,
           secPosition: row.secPosition,
           nickname: row.nickname,
+          weight: row.weight,
           id: row.id,
         });
       }

@@ -13,9 +13,19 @@ export async function POST(req: NextRequest) {
          position = $3,
          "secPosition" = $4,
          height = $5,
-         nickname = $6
-       WHERE id = $7`,
-      [body.name, body.jersey, body.position, body.secPosition, body.height, body.nickname, body.id]
+         nickname = $6,
+         weight = $7
+       WHERE id = $8`,
+      [
+        body.name,
+        body.jersey,
+        body.position,
+        body.secPosition,
+        body.height,
+        body.nickname,
+        body.weight ?? null,
+        body.id,
+      ]
     );
     return NextResponse.json({ success: true });
   } catch (e) {

@@ -51,6 +51,9 @@ export const PlayerEditModal = ({
   let [pos, setPos] = useState(pulledPlayer.position);
   let [pos2, setPos2] = useState(pulledPlayer.secPosition ?? "");
   let [height, setHeight] = useState(pulledPlayer.height);
+  let [weight, setWeight] = useState(
+    pulledPlayer.weight != null ? String(pulledPlayer.weight) : ""
+  );
 
   const labelProps = {
     color: "text.muted",
@@ -148,6 +151,17 @@ export const PlayerEditModal = ({
                   </Box>
 
                   <Box w="100%">
+                    <FormLabel {...labelProps}>Weight (lbs, opt.)</FormLabel>
+                    <Input
+                      {...inputProps}
+                      type="number"
+                      placeholder="e.g. 185"
+                      onChange={(e) => setWeight(e.target.value)}
+                      value={weight}
+                    />
+                  </Box>
+
+                  <Box w="100%">
                     <FormLabel {...labelProps}>Sec. Position (Opt.)</FormLabel>
                     <PositionSelect
                       setPos={setPos2}
@@ -176,6 +190,7 @@ export const PlayerEditModal = ({
                   position: pos,
                   secPosition: pos2 ? pos2 : "",
                   nickname: nickName ? nickName : "",
+                  weight: weight ? parseInt(weight) : null,
                   id: old[index].id,
                 };
 
