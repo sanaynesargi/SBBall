@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:migrate": "node --env-file=.env.local scripts/migrate-to-neon.mjs"
+    "db:migrate": "node --env-file=.env.local scripts/migrate-to-neon.mjs",
+    "joke:samar": "node --env-file=.env.local scripts/samar-as-sanay.mjs apply",
+    "joke:samar:revert": "node --env-file=.env.local scripts/samar-as-sanay.mjs revert"
   },
   "dependencies": {
     "@chakra-ui/descendant": "^3.1.0",
