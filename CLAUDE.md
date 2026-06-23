@@ -70,6 +70,17 @@ start/stop into the feed as "system" events (empty `playerName`, desc starting
 with "Clock"); `isClockEvent` detects them and `FeedEntry system` renders them
 as a centered row with no avatar.
 
+### Minutes tracking
+`stats.minutes` / `playoff_stats.minutes` (DOUBLE PRECISION, per player per game).
+The live tracker gives each player card a count-up minutes timer with an
+On court / Benched toggle. A player accrues time only while the **game clock is
+running AND they're active** — implemented with per-player `secondsPlayed` +
+`segStart` (accrual-start timestamp) on the player objects; `startClock`
+begins active players, `stopClock`/expiry flush everyone, `toggleMinutes` subs a
+player on/off. On End Game each player's flushed minutes is sent and stored.
+`aggregateStatColumns` exposes `AVG(minutes) AS min` (shown in the box score;
+null/"—" for pre-feature games).
+
 ### "For fun" per-size views
 `players.weight` (INTEGER lbs, nullable, editable in the create/edit player
 forms). The stats screen has a Totals / Inch-for-inch / Pound-for-pound toggle

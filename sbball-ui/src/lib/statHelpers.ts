@@ -52,7 +52,8 @@ export function aggregateStatColumns(mode: string): string {
     AVG("threesAttempted")::float8 AS "ttpfgA",
     AVG(threes)::float8 AS "ttpfgM",
     (SUM(CASE WHEN ${fgCountsClause} THEN threes ELSE 0 END)::numeric
-      / NULLIF(SUM(CASE WHEN ${fgCountsClause} THEN "threesAttempted" ELSE 0 END), 0))::float8 AS tp`;
+      / NULLIF(SUM(CASE WHEN ${fgCountsClause} THEN "threesAttempted" ELSE 0 END), 0))::float8 AS tp,
+    AVG(minutes)::float8 AS min`;
 }
 
 export function calculateImpressiveIndex(

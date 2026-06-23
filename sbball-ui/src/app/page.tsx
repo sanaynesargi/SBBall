@@ -66,6 +66,10 @@ interface PlayerDetails {
   setScore2: Function;
   team: number;
   fts: number;
+  // minutes tracking
+  secondsPlayed: number;
+  active: boolean;
+  segStart: number | null; // timestamp accrual started, or null when not accruing
 }
 
 interface PlayerDetailsProps {
@@ -100,6 +104,12 @@ interface PlayerDetailsProps {
   setScore2: Function;
   // feed
   onFeedEvent?: Function;
+  // minutes
+  secondsPlayed?: number;
+  active?: boolean;
+  segStart?: number | null;
+  clockRunning?: boolean;
+  onToggleMinutes?: Function;
 }
 
 // set the teams up
@@ -196,6 +206,11 @@ const Player = ({
   compressed,
   fts,
   onFeedEvent,
+  secondsPlayed = 0,
+  active = true,
+  segStart = null,
+  clockRunning = false,
+  onToggleMinutes,
 }: PlayerDetailsProps) => {
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
@@ -221,6 +236,10 @@ const Player = ({
       setScore1,
       setScore2,
       fts,
+      // preserve minutes tracking across stat updates
+      secondsPlayed,
+      active,
+      segStart,
     };
 
     if (field == "twos") {
@@ -320,6 +339,11 @@ const Player = ({
   };
 
   const teamColor = team == 1 ? "team1.500" : "team2.500";
+  const liveSeconds =
+    secondsPlayed + (segStart ? Math.floor((Date.now() - segStart) / 1000) : 0);
+  const accruing = segStart != null;
+  const fmtMin = (s: number) =>
+    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   return (
     <Box
@@ -343,6 +367,50 @@ const Player = ({
       px={{ base: 3, md: 4 }}
       py={3}
     >
+      {/* Minutes timer */}
+      <Flex
+        align="center"
+        justify="space-between"
+        mb={2.5}
+        pb={2.5}
+        borderBottom="1px solid"
+        borderColor="border.subtle"
+      >
+        <HStack spacing={2}>
+          <Box
+            w="7px"
+            h="7px"
+            borderRadius="full"
+            bg={accruing ? "accent.400" : "text.faint"}
+            boxShadow={accruing ? "0 0 8px rgba(70,238,156,0.7)" : "none"}
+          />
+          <Text
+            fontFamily="mono"
+            fontWeight={800}
+            fontSize="md"
+            sx={{ fontVariantNumeric: "tabular-nums" }}
+          >
+            {fmtMin(liveSeconds)}
+          </Text>
+          <Text
+            fontSize="9px"
+            fontWeight={800}
+            letterSpacing="0.08em"
+            color="text.faint"
+          >
+            MIN
+          </Text>
+        </HStack>
+        <Button
+          size="xs"
+          variant={active ? "surface" : "ghostMuted"}
+          color={active ? "accent.400" : "text.faint"}
+          onClick={() => onToggleMinutes?.(index)}
+        >
+          {active ? "On court" : "Benched"}
+        </Button>
+      </Flex>
+
       {/* Header */}
       <Flex align="center" gap={2} mb={2}>
         <Flex
@@ -732,9 +800,59 @@ const Home = () => {
       localStorage.setItem("clockRunning", "false");
       localStorage.removeItem("clockStartedAt");
       pushClockFeed("clock_stop", "Clock expired");
+      flushAllPlayers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clockTick]);
+
+  // ---- Per-player minutes (accrue only while game clock runs AND active) ----
+  const flushAllPlayers = () => {
+    const now = Date.now();
+    setPlayers((prev) => {
+      const next = prev.map((p) =>
+        p.segStart
+          ? {
+              ...p,
+              secondsPlayed:
+                (p.secondsPlayed || 0) + Math.floor((now - p.segStart) / 1000),
+              segStart: null,
+            }
+          : p
+      );
+      localStorage.setItem("gameState", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const beginActivePlayers = () => {
+    const now = Date.now();
+    setPlayers((prev) => {
+      const next = prev.map((p) =>
+        p.active ? { ...p, segStart: now } : { ...p, segStart: null }
+      );
+      localStorage.setItem("gameState", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Sub a player on/off the court. Flushes their running segment when benching.
+  const toggleMinutes = (index: number) => {
+    const now = Date.now();
+    setPlayers((prev) => {
+      const next = prev.map((p, i) => {
+        if (i !== index) return p;
+        if (p.active) {
+          const sp = p.segStart
+            ? (p.secondsPlayed || 0) + Math.floor((now - p.segStart) / 1000)
+            : p.secondsPlayed || 0;
+          return { ...p, active: false, secondsPlayed: sp, segStart: null };
+        }
+        return { ...p, active: true, segStart: clockRunning ? now : null };
+      });
+      localStorage.setItem("gameState", JSON.stringify(next));
+      return next;
+    });
+  };
 
   const startClock = () => {
     const startedAt = Date.now();
@@ -742,6 +860,7 @@ const Home = () => {
     setClockRunning(true);
     localStorage.setItem("clockRunning", "true");
     localStorage.setItem("clockStartedAt", String(startedAt));
+    beginActivePlayers();
     const label =
       countdownTarget != null
         ? clockBase === 0
@@ -766,6 +885,7 @@ const Home = () => {
     const shown =
       countdownTarget != null ? Math.max(0, countdownTarget - acc) : acc;
     pushClockFeed("clock_stop", `Clock stopped at ${fmtClock(shown)}`);
+    flushAllPlayers();
   };
 
   // Reset elapsed but keep the configured countdown target.
@@ -850,6 +970,9 @@ const Home = () => {
         setScore1,
         setScore2,
         team: 1,
+        secondsPlayed: 0,
+        active: true,
+        segStart: null,
       });
     }
 
@@ -877,6 +1000,9 @@ const Home = () => {
         setScore1,
         setScore2,
         team: 2,
+        secondsPlayed: 0,
+        active: true,
+        segStart: null,
       });
     }
 
@@ -968,6 +1094,8 @@ const Home = () => {
                 players={players}
                 inc={inc}
                 onFeedEvent={handleFeedEvent}
+                clockRunning={clockRunning}
+                onToggleMinutes={toggleMinutes}
                 setScore1={setScore1}
                 setScore2={setScore2}
               />
@@ -982,6 +1110,8 @@ const Home = () => {
                 players={players}
                 inc={inc}
                 onFeedEvent={handleFeedEvent}
+                clockRunning={clockRunning}
+                onToggleMinutes={toggleMinutes}
               />
             );
           }
@@ -1045,6 +1175,8 @@ const Home = () => {
                     players={players}
                     inc={inc}
                     onFeedEvent={handleFeedEvent}
+                clockRunning={clockRunning}
+                onToggleMinutes={toggleMinutes}
                     setScore1={setScore1}
                     setScore2={setScore2}
                   />
@@ -1060,6 +1192,8 @@ const Home = () => {
                     players={players}
                     inc={inc}
                     onFeedEvent={handleFeedEvent}
+                clockRunning={clockRunning}
+                onToggleMinutes={toggleMinutes}
                   />
                 );
               }
@@ -1175,8 +1309,19 @@ const Home = () => {
                 w="100%"
                 variant="accent"
                 onClick={async () => {
+                  // Flush each player's running minutes segment and attach total.
+                  const flushNow = Date.now();
+                  const playersWithMinutes = players.map((p) => {
+                    const secs =
+                      (p.secondsPlayed || 0) +
+                      (clockRunning && p.segStart
+                        ? Math.floor((flushNow - p.segStart) / 1000)
+                        : 0);
+                    return { ...p, minutes: +(secs / 60).toFixed(2) };
+                  });
+
                   const endGameReq = await axios.post(`${apiUrl}/api/endGame`, {
-                    players: players,
+                    players: playersWithMinutes,
                     winner: score1 > score2 ? 1 : score2 > score1 ? 2 : 0,
                     mode: playoffs ? "4v4" : "2v2",
                     averageFill,
