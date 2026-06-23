@@ -11,7 +11,8 @@
     "joke:samar": "node --env-file=.env.local scripts/samar-as-sanay.mjs apply",
     "joke:samar:revert": "node --env-file=.env.local scripts/samar-as-sanay.mjs revert",
     "joke:samar5": "node --env-file=.env.local scripts/samar-minus5.mjs apply",
-    "joke:samar5:revert": "node --env-file=.env.local scripts/samar-minus5.mjs revert"
+    "joke:samar5:revert": "node --env-file=.env.local scripts/samar-minus5.mjs revert",
+    "joke:samar0": "node --env-file=.env.local scripts/samar-set.mjs 0"
   },
   "dependencies": {
     "@chakra-ui/descendant": "^3.1.0",
