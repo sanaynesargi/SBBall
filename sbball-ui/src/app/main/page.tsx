@@ -208,6 +208,9 @@ const SortableTable = ({
               <Th {...numTh} onClick={() => handleSort("blk")}>
                 BLK
               </Th>
+              <Th {...numTh} onClick={() => handleSort("min")}>
+                MPG
+              </Th>
             </Tr>
           </Thead>
           <Tbody>
@@ -221,6 +224,9 @@ const SortableTable = ({
                 <Td {...numTd}>{row.ast.toFixed(1)}</Td>
                 <Td {...numTd}>{row.stl.toFixed(1)}</Td>
                 <Td {...numTd}>{row.blk.toFixed(1)}</Td>
+                <Td {...numTd} color="text.muted">
+                  {row.min == null ? "—" : row.min.toFixed(1)}
+                </Td>
               </Tr>
             ))}
           </Tbody>
