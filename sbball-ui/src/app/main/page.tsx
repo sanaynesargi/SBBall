@@ -482,6 +482,78 @@ const NormalizedTable = ({
   );
 };
 
+// Per-player shot-type splits: how points/attempts distribute across 2PT/3PT/FT.
+const ShotMixTable = ({ data }: { data: any[] }) => {
+  const rows = data.map((r) => {
+    const p2 = (r.tpfgM || 0) * 2;
+    const p3 = (r.ttpfgM || 0) * 3;
+    const pts = r.pts || 0;
+    const ft = Math.max(0, pts - (p2 + p3));
+    return {
+      player: r.player,
+      pct2: pts ? (p2 / pts) * 100 : 0,
+      pct3: pts ? (p3 / pts) * 100 : 0,
+      pctFt: pts ? (ft / pts) * 100 : 0,
+      threeRate: r.fgA ? (r.ttpfgA / r.fgA) * 100 : 0,
+    };
+  });
+  const [sortBy, setSortBy] = useState<string>("pct3");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const handle = (c: string) => {
+    if (sortBy === c) setOrder((o) => (o === "asc" ? "desc" : "asc"));
+    else {
+      setSortBy(c);
+      setOrder("desc");
+    }
+  };
+  const sorted = [...rows].sort((a: any, b: any) => {
+    if (sortBy === "player")
+      return order === "desc"
+        ? String(b.player).localeCompare(a.player)
+        : String(a.player).localeCompare(b.player);
+    return order === "desc" ? b[sortBy] - a[sortBy] : a[sortBy] - b[sortBy];
+  });
+  const cols = [
+    { k: "pct2", label: "2PT%" },
+    { k: "pct3", label: "3PT%" },
+    { k: "pctFt", label: "FT%" },
+    { k: "threeRate", label: "3PA RATE" },
+  ];
+  return (
+    <TableCard title="Shot Mix" hint="% OF POINTS · 3PA RATE">
+      <Table size="sm" variant="unstyled">
+        <Thead>
+          <Tr>
+            <Th {...sortableThProps} onClick={() => handle("player")}>
+              Player
+            </Th>
+            {cols.map((c) => (
+              <Th key={c.k} {...numTh} onClick={() => handle(c.k)}>
+                {c.label}
+              </Th>
+            ))}
+          </Tr>
+        </Thead>
+        <Tbody>
+          {sorted.map((r: any, i: number) => (
+            <Tr key={i} _hover={{ bg: "bg.hover" }}>
+              <Td fontFamily="heading" fontWeight={800} whiteSpace="nowrap">
+                {r.player}
+              </Td>
+              <Td {...numTd}>{r.pct2.toFixed(0)}%</Td>
+              <Td {...numTd} color="accent.400">
+                {r.pct3.toFixed(0)}%
+              </Td>
+              <Td {...numTd}>{r.pctFt.toFixed(0)}%</Td>
+              <Td {...numTd}>{r.threeRate.toFixed(0)}%</Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </TableCard>
+  );
+};
+
 const Home = () => {
   const [tableData, setTableData] = useState([]);
   const [mode, setMode] = useState(false);
@@ -649,13 +721,16 @@ const Home = () => {
       {tableData.length === 0 ? (
         <EmptyCard>No games logged yet for this mode.</EmptyCard>
       ) : normalize === "total" ? (
-        <SortableTable
-          data={tableData}
-          defaultSortColumn="pts"
-          defaultSortColumn2="fg"
-          defaultSortColumn3="fgA"
-          defaultSortOrder="desc"
-        />
+        <VStack spacing={5} align="stretch">
+          <SortableTable
+            data={tableData}
+            defaultSortColumn="pts"
+            defaultSortColumn2="fg"
+            defaultSortColumn3="fgA"
+            defaultSortOrder="desc"
+          />
+          <ShotMixTable data={tableData} />
+        </VStack>
       ) : normalizedRows.length === 0 ? (
         <EmptyCard>
           {normalize === "pound"

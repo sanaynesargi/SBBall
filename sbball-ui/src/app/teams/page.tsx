@@ -296,6 +296,99 @@ const StatBar = ({
   );
 };
 
+const shortDate = (d: string) => {
+  const p = String(d).split("/");
+  return p.length >= 2 ? `${p[0]}/${p[1]}` : d;
+};
+
+// Season-long scoring/efficiency trend across all games (chronological).
+const SeasonTrends = ({ games }: { games: any[] }) => {
+  const [metric, setMetric] = useState<"pts" | "efg">("pts");
+  const series = useMemo(() => {
+    const pd = (d: string) => {
+      const [m, dd, y] = String(d).split("/");
+      return new Date(+y, +m - 1, +dd).getTime();
+    };
+    return [...games]
+      .sort((a, b) => pd(a.date) - pd(b.date))
+      .map((g) => {
+        const c = aggregate(g.perfs, `${g.team1};${g.team2}`);
+        return { date: g.date, pts: Math.round(c.pts), efg: c.efg ?? 0 };
+      });
+  }, [games]);
+
+  const vals = series.map((s) => (metric === "pts" ? s.pts : s.efg));
+  const max = Math.max(...vals, 1);
+  const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+
+  return (
+    <Box
+      bg="bg.card"
+      border="1px solid"
+      borderColor="border.subtle"
+      borderRadius="card"
+      p={{ base: 5, md: 6 }}
+    >
+      <Flex justify="space-between" align="center" mb={4} gap={3} wrap="wrap">
+        <Box>
+          <Heading size="sm" color="text.muted">
+            Season Trends
+          </Heading>
+          <Text fontSize="xs" color="text.faint" mt={1}>
+            {metric === "pts" ? "Total points" : "Game eFG%"} per game · avg{" "}
+            {metric === "pts" ? avg.toFixed(0) : `${avg.toFixed(1)}%`}
+          </Text>
+        </Box>
+        <Flex bg="bg.surface" border="1px solid" borderColor="border.subtle" borderRadius="full" p={1} gap={1}>
+          {[
+            { k: "pts", label: "Points" },
+            { k: "efg", label: "eFG%" },
+          ].map((o) => (
+            <Flex
+              key={o.k}
+              px={3}
+              h="28px"
+              align="center"
+              borderRadius="full"
+              cursor="pointer"
+              fontSize="xs"
+              fontWeight={700}
+              color={metric === o.k ? "accent.fg" : "text.muted"}
+              bg={metric === o.k ? "accent.500" : "transparent"}
+              onClick={() => setMetric(o.k as "pts" | "efg")}
+            >
+              {o.label}
+            </Flex>
+          ))}
+        </Flex>
+      </Flex>
+
+      <Flex align="flex-end" gap={2} overflowX="auto" pb={2}>
+        {series.map((s, i) => {
+          const v = metric === "pts" ? s.pts : s.efg;
+          const hpx = Math.max(3, (v / max) * 120);
+          return (
+            <VStack key={i} spacing={1} minW="38px" justify="flex-end">
+              <Text fontSize="9px" color="text.muted" fontFamily="mono">
+                {metric === "pts" ? v : v.toFixed(0)}
+              </Text>
+              <Box
+                w="24px"
+                h={`${hpx}px`}
+                bg="accent.500"
+                borderRadius="6px 6px 0 0"
+              />
+              <Text fontSize="8px" color="text.faint" noOfLines={1}>
+                {shortDate(s.date)}
+              </Text>
+            </VStack>
+          );
+        })}
+      </Flex>
+    </Box>
+  );
+};
+
 const TeamsPage = () => {
   const [mode, setMode] = useState(false);
   const [games, setGames] = useState<any[]>([]);
@@ -462,6 +555,10 @@ const TeamsPage = () => {
                 </SimpleGrid>
               </VStack>
             )}
+
+            <Box mt={5}>
+              <SeasonTrends games={games} />
+            </Box>
           </>
         )}
       </Box>

@@ -333,6 +333,77 @@ const PlayerInfo = () => {
           ))}
         </SimpleGrid>
 
+        {statKeys.length > 0 && (
+          <>
+            <Text
+              fontSize="xs"
+              fontWeight={800}
+              color="text.muted"
+              letterSpacing="0.06em"
+              mt={6}
+              mb={2}
+            >
+              ADVANCED
+            </Text>
+            <SimpleGrid columns={{ base: 3, sm: 4 }} spacing={3}>
+              {(() => {
+                const d: any = playerData;
+                const pct = (v: any) =>
+                  v == null || isNaN(v) ? "—" : `${Number(v).toFixed(1)}%`;
+                const efg =
+                  d.fgA > 0 ? ((d.fgM + 0.5 * d.ttpfgM) / d.fgA) * 100 : null;
+                const pps = d.fgA > 0 ? d.pts / d.fgA : null;
+                const threeRate = d.fgA > 0 ? (d.ttpfgA / d.fgA) * 100 : null;
+                const tiles = [
+                  { label: "FG%", value: pct(d.fg) },
+                  { label: "3P%", value: pct(d.tp) },
+                  { label: "eFG%", value: pct(efg) },
+                  { label: "PTS/SHOT", value: pps == null ? "—" : pps.toFixed(2) },
+                  { label: "3PA RATE", value: pct(threeRate) },
+                  { label: "TOV", value: d.tov == null ? "—" : d.tov.toFixed(1) },
+                  { label: "MPG", value: d.min == null ? "—" : d.min.toFixed(1) },
+                  {
+                    label: "+/-",
+                    value:
+                      d.pm == null
+                        ? "—"
+                        : d.pm > 0
+                        ? `+${d.pm.toFixed(1)}`
+                        : d.pm.toFixed(1),
+                  },
+                ];
+                return tiles.map((tile) => (
+                  <Box
+                    key={tile.label}
+                    bg="bg.card"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    borderRadius="tile"
+                    py={3}
+                    textAlign="center"
+                  >
+                    <Heading
+                      fontFamily="heading"
+                      fontSize={{ base: "lg", md: "xl" }}
+                      color="text.primary"
+                    >
+                      {tile.value}
+                    </Heading>
+                    <Text
+                      fontSize="10px"
+                      fontWeight={800}
+                      color="text.muted"
+                      letterSpacing="0.06em"
+                    >
+                      {tile.label}
+                    </Text>
+                  </Box>
+                ));
+              })()}
+            </SimpleGrid>
+          </>
+        )}
+
         <Divider my={7} borderColor="border.subtle" />
 
         {/* Awards */}
