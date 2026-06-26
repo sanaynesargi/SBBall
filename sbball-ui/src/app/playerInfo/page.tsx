@@ -180,6 +180,34 @@ const ModeToggle = ({ mode, onToggle }: { mode: boolean; onToggle: () => void })
   </Flex>
 );
 
+const SeriesPill = ({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) => (
+  <Flex
+    px={3}
+    h="32px"
+    align="center"
+    borderRadius="full"
+    cursor="pointer"
+    fontSize="sm"
+    fontWeight={700}
+    border="1px solid"
+    borderColor={active ? "accent.500" : "border.subtle"}
+    bg={active ? "accent.500" : "bg.surface"}
+    color={active ? "accent.fg" : "text.muted"}
+    _hover={active ? {} : { color: "text.primary", borderColor: "accent.500" }}
+    onClick={onClick}
+  >
+    {label}
+  </Flex>
+);
+
 const PlayerInfo = () => {
   const [mode, setMode] = useState(false);
   const toast = useToast();
@@ -191,6 +219,23 @@ const PlayerInfo = () => {
   const [height, setHeight] = useState("");
   const [playerNum, setPlayerNum] = useState(0);
   const [pos, setPos] = useState("");
+  const [series, setSeries] = useState<string>("all");
+  const [seriesList, setSeriesList] = useState<{ series: number; games: number }[]>([]);
+
+  // Playoff series options.
+  useEffect(() => {
+    if (!mode) {
+      setSeriesList([]);
+      return;
+    }
+    const fetchSeries = async () => {
+      try {
+        const res = await axios.get(`${apiUrl}/api/getSeries?mode=4v4`);
+        if (!res.data.error) setSeriesList(res.data.series ?? []);
+      } catch {}
+    };
+    fetchSeries();
+  }, [mode]);
 
   useEffect(() => {
     const url = window.location.href;
@@ -204,7 +249,8 @@ const PlayerInfo = () => {
       const key = split[0];
       const value = split[1];
 
-      params[key] = value;
+      // Decode URL-encoding (e.g. %20 spaces in names/positions).
+      params[key] = value === undefined ? "" : decodeURIComponent(value);
     }
 
     const heightParts = params.height.split("|");
@@ -222,8 +268,9 @@ const PlayerInfo = () => {
         return;
       }
 
+      const seriesQ = mode && series !== "all" ? `&series=${series}` : "";
       const playerDataReq = await axios.get(
-        `${apiUrl}/api/getPlayerAverages?mode=${mode ? "4v4" : "2v2"}`
+        `${apiUrl}/api/getPlayerAverages?mode=${mode ? "4v4" : "2v2"}${seriesQ}`
       );
 
       const error = playerDataReq.data.error;
@@ -242,18 +289,22 @@ const PlayerInfo = () => {
       const tableData = playerDataReq.data.data;
       setTableData(tableData);
 
+      let found = false;
       for (const obj of tableData) {
         if (obj.player != playerName) {
           continue;
         }
 
         setPlayerData(obj);
+        found = true;
         break;
       }
+      // Player didn't appear in this series — clear their line.
+      if (!found) setPlayerData([]);
     };
 
     fetchPlayerData();
-  }, [playerName, mode]);
+  }, [playerName, mode, series]);
 
   useEffect(() => {
     if (!playerName) {
@@ -318,8 +369,35 @@ const PlayerInfo = () => {
               {height} • #{playerNum} • {pos}
             </Text>
           </Box>
-          <ModeToggle mode={mode} onToggle={() => setMode(!mode)} />
+          <ModeToggle
+            mode={mode}
+            onToggle={() => {
+              setSeries("all");
+              setMode(!mode);
+            }}
+          />
         </Flex>
+
+        {mode && seriesList.length > 0 && (
+          <Flex align="center" gap={2} mt={4} wrap="wrap">
+            <Text fontSize="sm" fontWeight={800} color="text.muted" mr={1}>
+              By Series
+            </Text>
+            <SeriesPill
+              label="All"
+              active={series === "all"}
+              onClick={() => setSeries("all")}
+            />
+            {seriesList.map((s) => (
+              <SeriesPill
+                key={s.series}
+                label={`Series ${s.series}`}
+                active={series === String(s.series)}
+                onClick={() => setSeries(String(s.series))}
+              />
+            ))}
+          </Flex>
+        )}
 
         {/* Stat tiles */}
         <SimpleGrid columns={{ base: 3, sm: 5 }} spacing={3} mt={5}>

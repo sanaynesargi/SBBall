@@ -100,11 +100,11 @@ export const Player = ({
             _hover={{ color: "accent.400", cursor: "pointer" }}
             onClick={() =>
               router.push(
-                `/playerInfo?name=${name}&height=${
+                `/playerInfo?name=${encodeURIComponent(name)}&height=${
                   height[0] + "|" + height[2]
-                }&num=${jersey}&pos=${`${position}${
-                  secPosition ? `/${secPosition}` : ""
-                }`}`
+                }&num=${jersey}&pos=${encodeURIComponent(
+                  `${position}${secPosition ? `/${secPosition}` : ""}`
+                )}`
               )
             }
           >
