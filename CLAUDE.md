@@ -98,7 +98,7 @@ inches) or weight, client-side (`main/page.tsx`, `NormalizedTable`). Pound-for-
 pound shows an empty state until weights are entered.
 
 ### Frontend
-- App Router pages under `sbball-ui/src/app/`: `/` (live game tracker, the largest), `main/` (league leaders), `create/` (roster/game log/box scores), `gameView/`, `playerInfo/`, `admin/` (dev-only). Pages are `"use client"` and call the **same-origin** `/api/*` via `axios`.
+- App Router pages under `sbball-ui/src/app/`: `/` (live game tracker, the largest), `main/` (league leaders), `create/` (roster/game log/box scores), `compare/`, `teams/` (per-game team breakdown — shooting splits & head-to-head, aggregated client-side from getBoxScores), `gameView/`, `playerInfo/`, `admin/` (dev-only). Pages are `"use client"` and call the **same-origin** `/api/*` via `axios`. Nav lives in `components/Layout.tsx`.
 - `utils/apiUrl.tsx` exports `apiUrl = process.env.NEXT_PUBLIC_API_URL ?? ""` — **empty string = same origin**. Do NOT set `NEXT_PUBLIC_API_URL` in Vercel (a leftover Railway URL there would send traffic off-app).
 - Reusable components in `sbball-ui/components/` (sibling of `src/`, not inside it). Shared types in `sbball-ui/types/`.
 

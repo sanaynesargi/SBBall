@@ -13,6 +13,7 @@ const NAV = [
   { label: "Live", href: "/", icon: LiveIcon },
   { label: "Players", href: "/create", icon: PlayersIcon },
   { label: "Stats", href: "/main", icon: StatsIcon },
+  { label: "Teams", href: "/teams", icon: TeamsIcon },
 ];
 
 const Layout = ({ children, size }: LayoutProps) => {
@@ -214,6 +215,20 @@ function StatsIcon(props: any) {
         strokeWidth="2.4"
         strokeLinecap="round"
       />
+    </svg>
+  );
+}
+
+function TeamsIcon(props: any) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" {...props}>
+      <path
+        d="M5 4h5v16H5zM14 4h5v16h-5z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path d="M12 7v10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeDasharray="2 2" />
     </svg>
   );
 }
