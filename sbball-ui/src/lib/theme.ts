@@ -64,7 +64,7 @@ const semanticTokens = {
 
 // Container width tokens used across the responsive shell.
 const sizes = {
-  shell: { base: "100%", md: "720px", lg: "960px", xl: "1100px" },
+  shell: { base: "100%", md: "860px", lg: "1140px", xl: "1360px" },
 };
 
 const radii = {

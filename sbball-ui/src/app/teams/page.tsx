@@ -109,6 +109,11 @@ function aggregate(perfs: any[], namesStr: string) {
     pts2: twoM * 2,
     pts3: threeM * 3,
     ptsFt: Math.max(0, pts - (twoM * 2 + threeM * 3)),
+    // advanced
+    efg: fgA ? ((fgM + 0.5 * threeM) / fgA) * 100 : null,
+    pps: fgA ? pts / fgA : null, // points per field-goal attempt
+    threeRate: fgA ? (threeA / fgA) * 100 : null, // share of FGA from three
+    astTo: s("tov") > 0 ? s("ast") / s("tov") : s("ast") > 0 ? Infinity : 0,
   };
 }
 
@@ -244,17 +249,28 @@ const StatBar = ({
   b,
   pct,
   lowerBetter,
+  digits,
 }: {
   label: string;
   a: number;
   b: number;
   pct?: boolean;
   lowerBetter?: boolean;
+  digits?: number;
 }) => {
-  const total = a + b || 1;
-  const aWins = a !== b && (lowerBetter ? a < b : a > b);
-  const bWins = a !== b && !aWins;
-  const fmt = (v: number) => (pct ? `${v.toFixed(1)}%` : `${Math.round(v)}`);
+  const af = Number.isFinite(a) ? a : 0;
+  const bf = Number.isFinite(b) ? b : 0;
+  const total = af + bf || 1;
+  const aWins = af !== bf && (lowerBetter ? af < bf : af > bf);
+  const bWins = af !== bf && !aWins;
+  const fmt = (v: number) =>
+    !Number.isFinite(v)
+      ? "∞"
+      : pct
+      ? `${v.toFixed(1)}%`
+      : digits != null
+      ? v.toFixed(digits)
+      : `${Math.round(v)}`;
   return (
     <Box>
       <Flex align="center" justify="space-between" mb={1}>
@@ -270,10 +286,10 @@ const StatBar = ({
       </Flex>
       <Flex h="5px" gap="3px">
         <Flex flex="1" justify="flex-end">
-          <Box w={`${(a / total) * 100}%`} h="100%" borderRadius="full" bg={aWins ? "team1.500" : "court.700"} />
+          <Box w={`${(af / total) * 100}%`} h="100%" borderRadius="full" bg={aWins ? "team1.500" : "court.700"} />
         </Flex>
         <Flex flex="1" justify="flex-start">
-          <Box w={`${(b / total) * 100}%`} h="100%" borderRadius="full" bg={bWins ? "team2.500" : "court.700"} />
+          <Box w={`${(bf / total) * 100}%`} h="100%" borderRadius="full" bg={bWins ? "team2.500" : "court.700"} />
         </Flex>
       </Flex>
     </Box>
@@ -310,7 +326,7 @@ const TeamsPage = () => {
 
   return (
     <Layout>
-      <Box maxW="720px" mx="auto">
+      <Box w="100%">
         <Flex
           direction={{ base: "column", sm: "row" }}
           justify="space-between"
@@ -374,27 +390,76 @@ const TeamsPage = () => {
                   />
                 </SimpleGrid>
 
-                <Box
-                  bg="bg.card"
-                  border="1px solid"
-                  borderColor="border.subtle"
-                  borderRadius="card"
-                  p={{ base: 5, md: 6 }}
-                >
-                  <Heading size="sm" mb={4} color="text.muted">
-                    Head to Head
-                  </Heading>
-                  <VStack spacing={4} align="stretch">
-                    <StatBar label="PTS" a={t1.pts} b={t2.pts} />
-                    <StatBar label="FG%" a={t1.fgPct ?? 0} b={t2.fgPct ?? 0} pct />
-                    <StatBar label="3P%" a={t1.threePct ?? 0} b={t2.threePct ?? 0} pct />
-                    <StatBar label="REB" a={t1.reb} b={t2.reb} />
-                    <StatBar label="AST" a={t1.ast} b={t2.ast} />
-                    <StatBar label="STL" a={t1.stl} b={t2.stl} />
-                    <StatBar label="BLK" a={t1.blk} b={t2.blk} />
-                    <StatBar label="TOV" a={t1.tov} b={t2.tov} lowerBetter />
-                  </VStack>
-                </Box>
+                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                  <Box
+                    bg="bg.card"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    borderRadius="card"
+                    p={{ base: 5, md: 6 }}
+                  >
+                    <Heading size="sm" mb={4} color="text.muted">
+                      Box Totals
+                    </Heading>
+                    <VStack spacing={4} align="stretch">
+                      <StatBar label="PTS" a={t1.pts} b={t2.pts} />
+                      <StatBar label="FG%" a={t1.fgPct ?? 0} b={t2.fgPct ?? 0} pct />
+                      <StatBar label="3P%" a={t1.threePct ?? 0} b={t2.threePct ?? 0} pct />
+                      <StatBar label="REB" a={t1.reb} b={t2.reb} />
+                      <StatBar label="AST" a={t1.ast} b={t2.ast} />
+                      <StatBar label="STL" a={t1.stl} b={t2.stl} />
+                      <StatBar label="BLK" a={t1.blk} b={t2.blk} />
+                      <StatBar label="TOV" a={t1.tov} b={t2.tov} lowerBetter />
+                    </VStack>
+                  </Box>
+
+                  <Box
+                    bg="bg.card"
+                    border="1px solid"
+                    borderColor="border.subtle"
+                    borderRadius="card"
+                    p={{ base: 5, md: 6 }}
+                  >
+                    <Heading size="sm" mb={1} color="text.muted">
+                      Advanced
+                    </Heading>
+                    <Text fontSize="xs" color="text.faint" mb={4}>
+                      Shooting efficiency & ball movement
+                    </Text>
+                    <VStack spacing={4} align="stretch">
+                      <StatBar label="eFG%" a={t1.efg ?? 0} b={t2.efg ?? 0} pct />
+                      <StatBar
+                        label="PTS / SHOT"
+                        a={t1.pps ?? 0}
+                        b={t2.pps ?? 0}
+                        digits={2}
+                      />
+                      <StatBar
+                        label="3PA RATE"
+                        a={t1.threeRate ?? 0}
+                        b={t2.threeRate ?? 0}
+                        pct
+                      />
+                      <StatBar
+                        label="AST / TO"
+                        a={t1.astTo}
+                        b={t2.astTo}
+                        digits={2}
+                      />
+                      <StatBar
+                        label="% PTS / 3PT"
+                        a={t1.pts ? (t1.pts3 / t1.pts) * 100 : 0}
+                        b={t2.pts ? (t2.pts3 / t2.pts) * 100 : 0}
+                        pct
+                      />
+                      <StatBar label="FGA" a={t1.fgA} b={t2.fgA} />
+                    </VStack>
+                    <Text fontSize="9px" color="text.faint" mt={3}>
+                      eFG% credits 3s; PTS/SHOT = points per FG attempt; 3PA rate =
+                      share of attempts from three.
+                    </Text>
+                  </Box>
+                </SimpleGrid>
               </VStack>
             )}
           </>
