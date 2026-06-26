@@ -14,33 +14,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { RealStatShort } from "./RealStatShort";
-
-// Preserves the original threshold chain (first match wins); maps the
-// legacy CSS color names onto theme tokens: mid -> yellow, high -> green,
-// low -> red.
-const ratingColor = (rating: number) => {
-  return rating >= 5
-    ? "warn.500"
-    : rating >= 10
-    ? "accent.400"
-    : rating >= 15
-    ? "accent.400"
-    : rating >= 20
-    ? "pos.500"
-    : rating >= 25
-    ? "pos.500"
-    : rating >= 30
-    ? "pos.500"
-    : rating >= 35
-    ? "pos.500"
-    : rating >= 40
-    ? "pos.500"
-    : rating >= 45
-    ? "pos.500"
-    : rating >= 50
-    ? "pos.500"
-    : "neg.500";
-};
+import { gameScoreColor as ratingColor } from "../utils/rating";
 
 interface FullStatDisplayProps {
   data: any;
@@ -78,7 +52,10 @@ export const FullStatDisplay = ({
                 fontSize={{ base: "lg", md: "xl" }}
                 color={ratingColor(data["rating"])}
               >
-                {data["rating"].toFixed(2)}
+                {data["rating"].toFixed(1)}
+                <Box as="span" fontSize="2xs" color="text.faint" ml={1} fontWeight={700}>
+                  GMSC
+                </Box>
               </Text>
             </HStack>
           </ModalHeader>

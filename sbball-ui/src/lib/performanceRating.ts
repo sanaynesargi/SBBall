@@ -1,106 +1,52 @@
-// Ported verbatim from sbball-server/src/performanceRating.ts so rating values
-// stay identical after the move to Postgres. stats = [pts, oreb, dreb, ast,
-// stl, blk, threePm, fgPercent, threePPercent, to].
+// Player single-game performance score ("Game Score"), reworked to a
+// Hollinger-style metric adapted to the stats this app tracks. It rewards
+// efficient scoring and all-around production and penalizes empty volume,
+// turnovers, and fouls — far more meaningful than the old ad-hoc weight/bonus
+// system.
+//
+//   GmSc = PTS
+//        + 0.4·FGM − 0.7·FGA      (efficiency: reward makes, punish missed shots)
+//        + 0.7·ORB + 0.3·DRB
+//        + STL + 0.7·AST + 0.7·BLK
+//        − 0.4·PF − TOV
+//
+// NOTE: free-throw *attempts* aren't tracked (only makes, and only in 4v4), so
+// the standard −0.4·(FTA−FTM) missed-FT penalty is omitted. Mode-agnostic.
 
-type RatingSystem = {
-  baseWeights: {
-    points: number;
-    offensiveRebounds: number;
-    defensiveRebounds: number;
-    assists: number;
-    steals: number;
-    blocks: number;
-    threePointersMade: number;
-  };
-  efficiencyMetrics?: {
-    turnovers: number;
-    fieldGoalPercentage: number;
-    threePointPercentage: number;
-  };
-  bonuses: {
-    doubleDouble: number;
-    tripleDouble: number;
-    scoring: Record<number, number>;
-    rebounds: Record<number, number>;
-    assists: Record<number, number>;
-    threePointers: Record<number, number>;
-  };
-};
+export interface GameStatLine {
+  twos: number;
+  threes: number;
+  fts?: number;
+  twosAttempted: number;
+  threesAttempted: number;
+  offReb: number;
+  defReb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  tov: number;
+  fouls: number;
+}
 
-const baseWeights = {
-  points: 0.1,
-  offensiveRebounds: 0.2,
-  defensiveRebounds: 0.15,
-  assists: 0.3,
-  steals: 0.5,
-  blocks: 0.5,
-  threePointersMade: 0.3,
-};
+const n = (v: number | undefined | null) => Number(v) || 0;
 
-const bonuses = {
-  doubleDouble: 2,
-  tripleDouble: 4,
-  scoring: { 20: 0.5, 30: 0.5, 40: 1, 50: 2 } as Record<number, number>,
-  rebounds: { 20: 2, 30: 4 } as Record<number, number>,
-  assists: { 5: 0.5, 10: 1.5 } as Record<number, number>,
-  threePointers: { 5: 0.5, 10: 2 } as Record<number, number>,
-};
+export function calculateGameScore(s: GameStatLine): number {
+  const fts = n(s.fts);
+  const pts = n(s.twos) * 2 + n(s.threes) * 3 + fts;
+  const fgm = n(s.twos) + n(s.threes);
+  const fga = n(s.twosAttempted) + n(s.threesAttempted);
 
-const playoffRatingSystem: RatingSystem = { baseWeights, bonuses };
+  const gs =
+    pts +
+    0.4 * fgm -
+    0.7 * fga +
+    0.7 * n(s.offReb) +
+    0.3 * n(s.defReb) +
+    n(s.stl) +
+    0.7 * n(s.ast) +
+    0.7 * n(s.blk) -
+    0.4 * n(s.fouls) -
+    n(s.tov);
 
-const regularSeasonRatingSystem: RatingSystem = {
-  baseWeights,
-  efficiencyMetrics: {
-    turnovers: -0.1,
-    fieldGoalPercentage: 1.7,
-    threePointPercentage: 1.0,
-  },
-  bonuses,
-};
-
-export function calculateRating(stats: number[], isPlayoff: boolean): number {
-  const ratingSystem = isPlayoff
-    ? playoffRatingSystem
-    : regularSeasonRatingSystem;
-
-  const [pts, oreb, dreb, ast, stl, blk, threePm, fgPercent, threePPercent, to] =
-    stats;
-
-  let rating =
-    pts * ratingSystem.baseWeights.points +
-    oreb * ratingSystem.baseWeights.offensiveRebounds +
-    dreb * ratingSystem.baseWeights.defensiveRebounds +
-    ast * ratingSystem.baseWeights.assists +
-    stl * ratingSystem.baseWeights.steals +
-    blk * ratingSystem.baseWeights.blocks +
-    threePm * ratingSystem.baseWeights.threePointersMade;
-
-  if (!isPlayoff && ratingSystem.efficiencyMetrics) {
-    rating += to * ratingSystem.efficiencyMetrics.turnovers;
-    rating +=
-      (fgPercent / 100) * ratingSystem.efficiencyMetrics.fieldGoalPercentage;
-    rating +=
-      (threePPercent / 100) *
-      ratingSystem.efficiencyMetrics.threePointPercentage;
-  }
-
-  if (pts >= 10 && oreb + dreb >= 10) rating += ratingSystem.bonuses.doubleDouble;
-  if (pts >= 10 && oreb + dreb >= 10 && ast >= 10)
-    rating += ratingSystem.bonuses.tripleDouble;
-
-  if (pts >= 50) rating += ratingSystem.bonuses.scoring[50];
-  else if (pts >= 40) rating += ratingSystem.bonuses.scoring[40];
-  else if (pts >= 30) rating += ratingSystem.bonuses.scoring[30];
-  else if (pts >= 20) rating += ratingSystem.bonuses.scoring[20];
-
-  if (oreb + dreb >= 30) rating += ratingSystem.bonuses.rebounds[30];
-  else if (oreb + dreb >= 20) rating += ratingSystem.bonuses.rebounds[20];
-
-  if (ast >= 10) rating += ratingSystem.bonuses.assists[10];
-  else if (ast >= 5) rating += ratingSystem.bonuses.assists[5];
-
-  if (threePm >= 10) rating += ratingSystem.bonuses.threePointers[10];
-  else if (threePm >= 5) rating += ratingSystem.bonuses.threePointers[5];
-
-  return rating;
+  return Math.round(gs * 10) / 10;
 }

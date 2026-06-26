@@ -1,5 +1,6 @@
-import { VStack, SimpleGrid, HStack, Text } from "@chakra-ui/react";
+import { Box, VStack, SimpleGrid, HStack, Text } from "@chakra-ui/react";
 import { RealStatShort } from "./RealStatShort";
+import { gameScoreColor } from "../utils/rating";
 
 interface BoxScorePlayerProps {
   name: string;
@@ -50,10 +51,13 @@ export const BoxScorePlayer = ({
         <Text
           fontFamily="heading"
           fontWeight={900}
-          color="accent.400"
+          color={gameScoreColor(rtg)}
           fontSize={{ base: "sm", md: "md" }}
         >
-          {rtg.toFixed(2)}
+          {rtg.toFixed(1)}
+          <Box as="span" fontSize="2xs" color="text.faint" ml={1} fontWeight={700}>
+            GMSC
+          </Box>
         </Text>
       </HStack>
       <SimpleGrid columns={{ base: 4, md: 8 }} spacing={2}>

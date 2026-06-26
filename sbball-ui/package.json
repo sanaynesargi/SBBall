@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "node --env-file=.env.local scripts/migrate-to-neon.mjs",
+    "db:recompute-ratings": "node --env-file=.env.local scripts/recompute-ratings.mjs",
     "joke:samar": "node --env-file=.env.local scripts/samar-as-sanay.mjs apply",
     "joke:samar:revert": "node --env-file=.env.local scripts/samar-as-sanay.mjs revert",
     "joke:samar5": "node --env-file=.env.local scripts/samar-minus5.mjs apply",

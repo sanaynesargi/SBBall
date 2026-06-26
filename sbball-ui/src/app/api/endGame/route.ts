@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { calculateRating } from "@/lib/performanceRating";
+import { calculateGameScore } from "@/lib/performanceRating";
 import { getTodayDate, hasFreeThrows, statsTable } from "@/lib/statHelpers";
 
 export const dynamic = "force-dynamic";
@@ -101,22 +101,6 @@ export async function POST(req: NextRequest) {
     for (const p of players) {
       const ftsVal = p.fts ?? 0;
 
-      // Rating is always computed from the player's actual line, regardless of
-      // averageFill.
-      const formattedPerf = [
-        p.twos * 2 + p.threes * 3 + ftsVal,
-        p.offReb,
-        p.defReb,
-        p.ast,
-        p.stl,
-        p.blk,
-        p.threes,
-        ((p.twos + p.threes) / (p.threesAttempted + p.twosAttempted)) * 100,
-        (p.threes / p.threesAttempted) * 100,
-        p.tov,
-      ];
-      const rating = calculateRating(formattedPerf, isPlayoff);
-
       // Base (non-shooting) stats either come straight from the entry or from
       // the player's rounded career averages.
       let ast = p.ast;
@@ -140,6 +124,22 @@ export async function POST(req: NextRequest) {
         stl = Math.round(avgs.stl);
         tov = Math.round(avgs.tov);
       }
+
+      // Game Score computed from the values actually being stored.
+      const rating = calculateGameScore({
+        twos: p.twos,
+        threes: p.threes,
+        fts: ftsVal,
+        twosAttempted: p.twosAttempted,
+        threesAttempted: p.threesAttempted,
+        offReb,
+        defReb,
+        ast,
+        stl,
+        blk,
+        tov,
+        fouls,
+      });
 
       const minutes = p.minutes ?? null;
       const plusMinus = p.plusMinus ?? null;
