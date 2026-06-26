@@ -68,8 +68,29 @@ function aggregate(perfs: any[], namesStr: string) {
   const pts = s("pts");
   const fgM = twoM + threeM;
   const fgA = twoA + threeA;
+  const roster = t
+    .map((p) => {
+      const twoMade = Number(p.tpfgM) || 0;
+      const threeMade = Number(p.ttpfgM) || 0;
+      const pp = Number(p.pts) || 0;
+      const p2 = twoMade * 2;
+      const p3 = threeMade * 3;
+      return {
+        name: p.playerName as string,
+        pts: pp,
+        p2,
+        p3,
+        ft: Math.max(0, pp - (p2 + p3)),
+        twoM: twoMade,
+        twoA: Number(p.tpfgA) || 0,
+        threeM: threeMade,
+        threeA: Number(p.ttpfgA) || 0,
+      };
+    })
+    .sort((a, b) => b.pts - a.pts);
   return {
     players: t.length,
+    roster,
     pts,
     reb: s("reb"),
     ast: s("ast"),
@@ -174,6 +195,44 @@ const TeamShootingCard = ({
           </HStack>
         ))}
       </HStack>
+
+      {/* Per-player point breakdown */}
+      <Text
+        fontSize="10px"
+        fontWeight={800}
+        color="text.faint"
+        letterSpacing="0.06em"
+        mt={4}
+        mb={1.5}
+      >
+        BY PLAYER
+      </Text>
+      <VStack spacing={1.5} align="stretch">
+        {t.roster.map((pl) => (
+          <Flex key={pl.name} align="center" justify="space-between" gap={2}>
+            <Text fontWeight={700} fontSize="sm" noOfLines={1}>
+              {pl.name}
+            </Text>
+            <HStack spacing={2.5} flexShrink={0}>
+              <Text fontSize="11px" color="text.faint" fontFamily="mono">
+                {pl.p2}/{pl.p3}/{pl.ft}
+              </Text>
+              <Heading
+                fontFamily="heading"
+                fontSize="md"
+                color={color}
+                minW="28px"
+                textAlign="right"
+              >
+                {Math.round(pl.pts)}
+              </Heading>
+            </HStack>
+          </Flex>
+        ))}
+      </VStack>
+      <Text fontSize="9px" color="text.faint" mt={1}>
+        pts split: 2PT / 3PT / FT
+      </Text>
     </Box>
   );
 };
