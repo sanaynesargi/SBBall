@@ -70,6 +70,8 @@ interface PlayerDetails {
   secondsPlayed: number;
   active: boolean;
   segStart: number | null; // timestamp accrual started, or null when not accruing
+  // plus/minus (team point differential while on court)
+  plusMinus: number;
 }
 
 interface PlayerDetailsProps {
@@ -110,6 +112,9 @@ interface PlayerDetailsProps {
   segStart?: number | null;
   clockRunning?: boolean;
   onToggleMinutes?: Function;
+  // plus/minus
+  plusMinus?: number;
+  onScore?: Function;
 }
 
 // set the teams up
@@ -211,10 +216,13 @@ const Player = ({
   segStart = null,
   clockRunning = false,
   onToggleMinutes,
+  plusMinus = 0,
+  onScore,
 }: PlayerDetailsProps) => {
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
   const updateStats = (field: string) => {
+    let scoreDelta = 0; // signed points added to this player's team
     let player: PlayerDetails = {
       name,
       jersey,
@@ -240,6 +248,7 @@ const Player = ({
       secondsPlayed,
       active,
       segStart,
+      plusMinus,
     };
 
     if (field == "twos") {
@@ -264,6 +273,7 @@ const Player = ({
         old[1] += 2 * inc;
         setScore2(old);
       }
+      scoreDelta = 2 * inc;
     } else if (field == "threes") {
       inc > 0
         ? player[field as keyof PlayerDetails]++
@@ -286,6 +296,7 @@ const Player = ({
         old[1] += 3 * inc;
         setScore2(old);
       }
+      scoreDelta = 3 * inc;
     } else if (field == "fts") {
       inc > 0
         ? player[field as keyof PlayerDetails]++
@@ -301,6 +312,7 @@ const Player = ({
         old[1] += 1 * inc;
         setScore2(old);
       }
+      scoreDelta = 1 * inc;
     } else {
       inc > 0
         ? player[field as keyof PlayerDetails]++
@@ -313,6 +325,11 @@ const Player = ({
     localStorage.setItem("gameState", JSON.stringify(newPlayers));
 
     updatePlayers(newPlayers);
+
+    // Plus/minus: a scoring play shifts the differential for everyone on court.
+    if (scoreDelta !== 0 && onScore) {
+      onScore(team, scoreDelta);
+    }
 
     // Record the play in the live feed (only for fields that map to a feed
     // event; tov/fouls have no snapshot column and are skipped).
@@ -400,6 +417,27 @@ const Player = ({
           >
             MIN
           </Text>
+          <Box
+            px={2}
+            py={0.5}
+            ml={1}
+            borderRadius="full"
+            bg="bg.surface"
+            border="1px solid"
+            borderColor="border.subtle"
+            fontSize="11px"
+            fontWeight={800}
+            fontFamily="mono"
+            color={
+              plusMinus > 0
+                ? "accent.400"
+                : plusMinus < 0
+                ? "neg.500"
+                : "text.muted"
+            }
+          >
+            {plusMinus > 0 ? `+${plusMinus}` : plusMinus} ±
+          </Box>
         </HStack>
         <Button
           size="xs"
@@ -835,9 +873,45 @@ const Home = () => {
     });
   };
 
+  // Plus/minus: a scoring play shifts the differential for every on-court player.
+  const applyPlusMinus = (scoringTeam: number, delta: number) => {
+    setPlayers((prev) => {
+      const next = prev.map((p) =>
+        p.active
+          ? {
+              ...p,
+              plusMinus:
+                (p.plusMinus || 0) +
+                (p.team === scoringTeam ? delta : -delta),
+            }
+          : p
+      );
+      localStorage.setItem("gameState", JSON.stringify(next));
+      return next;
+    });
+  };
+
   // Sub a player on/off the court. Flushes their running segment when benching.
+  // Guards against putting too many of a team on the court at once.
   const toggleMinutes = (index: number) => {
     const now = Date.now();
+    const target = players[index];
+    if (target && !target.active) {
+      const max = playoffs ? 4 : 2;
+      const onCourt = players.filter(
+        (p) => p.team === target.team && p.active
+      ).length;
+      if (onCourt >= max) {
+        toast({
+          title: "Too many players on the court",
+          description: `Team ${target.team} already has ${max} on the court — bench someone first.`,
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+    }
     setPlayers((prev) => {
       const next = prev.map((p, i) => {
         if (i !== index) return p;
@@ -973,6 +1047,7 @@ const Home = () => {
         secondsPlayed: 0,
         active: true,
         segStart: null,
+        plusMinus: 0,
       });
     }
 
@@ -1003,6 +1078,7 @@ const Home = () => {
         secondsPlayed: 0,
         active: true,
         segStart: null,
+        plusMinus: 0,
       });
     }
 
@@ -1080,127 +1156,82 @@ const Home = () => {
 
   const [inc, setInc] = useState(1);
 
-  const PhonePlayerView = () => {
+  const renderCard = (player: PlayerDetails, index: number) => (
+    <Box
+      key={index}
+      flexShrink={0}
+      w={{ base: "300px", sm: playoffs ? "320px" : "380px" }}
+    >
+      <Player
+        compressed={playoffs}
+        {...player}
+        updatePlayers={setPlayers}
+        index={index}
+        players={players}
+        inc={inc}
+        onFeedEvent={handleFeedEvent}
+        clockRunning={clockRunning}
+        onToggleMinutes={toggleMinutes}
+        onScore={applyPlusMinus}
+        setScore1={setScore1}
+        setScore2={setScore2}
+      />
+    </Box>
+  );
+
+  // Two rows — one per team — each a horizontal strip of player cards.
+  const CourtView = () => {
+    const rows = [
+      { team: 1, color: "team1.500", label: "Team 1" },
+      { team: 2, color: "team2.500", label: "Team 2" },
+    ];
     return (
-      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4} w="100%" justifyItems="center">
-        {players.map((player: PlayerDetails, index: number) => {
-          if (!player.setScore1) {
-            return (
-              <Player
-                key={index}
-                {...player}
-                updatePlayers={setPlayers}
-                index={index}
-                players={players}
-                inc={inc}
-                onFeedEvent={handleFeedEvent}
-                clockRunning={clockRunning}
-                onToggleMinutes={toggleMinutes}
-                setScore1={setScore1}
-                setScore2={setScore2}
-              />
-            );
-          } else {
-            return (
-              <Player
-                key={index}
-                {...player}
-                updatePlayers={setPlayers}
-                index={index}
-                players={players}
-                inc={inc}
-                onFeedEvent={handleFeedEvent}
-                clockRunning={clockRunning}
-                onToggleMinutes={toggleMinutes}
-              />
-            );
-          }
+      <VStack spacing={5} align="stretch" w="100%">
+        {rows.map((row) => {
+          const cards = players
+            .map((p, i) => ({ p, i }))
+            .filter((x) => x.p.team === row.team);
+          const onCourt = cards.filter((c) => c.p.active).length;
+          return (
+            <Box key={row.team}>
+              <HStack mb={2} spacing={2}>
+                <Box w="10px" h="10px" borderRadius="full" bg={row.color} />
+                <Text
+                  fontFamily="heading"
+                  fontWeight={800}
+                  fontSize="sm"
+                  color={row.color}
+                >
+                  {row.label}
+                </Text>
+                <Text fontSize="xs" color="text.faint">
+                  {onCourt} on court
+                </Text>
+              </HStack>
+              <Flex
+                gap={3}
+                overflowX="auto"
+                pb={2}
+                sx={{
+                  "&::-webkit-scrollbar": { height: "6px" },
+                  "&::-webkit-scrollbar-thumb": {
+                    background: "var(--chakra-colors-court-700)",
+                    borderRadius: "9999px",
+                  },
+                }}
+              >
+                {cards.length === 0 ? (
+                  <Text fontSize="sm" color="text.faint" py={4}>
+                    No players on this team.
+                  </Text>
+                ) : (
+                  cards.map(({ p, i }) => renderCard(p, i))
+                )}
+              </Flex>
+            </Box>
+          );
         })}
-      </SimpleGrid>
-    );
-  };
-
-  const splitParts = () => {
-    let ps = [];
-    if (team1.length % 2 == 0) {
-      let groups = [
-        team1.slice(0, team1.length / 2),
-        team1.slice(team1.length / 2, team1.length),
-        team2.slice(0, team1.length / 2),
-        team2.slice(team1.length / 2, team1.length),
-      ];
-
-      for (const gr of groups) {
-        let p: any = [];
-        for (const pName of gr) {
-          p.push(findPlayerByName(players, pName));
-        }
-
-        ps.push(p);
-      }
-
-      return ps;
-    } else {
-      let groups = [team1, team2];
-
-      for (const gr of groups) {
-        let p: any = [];
-        for (const pName of gr) {
-          p.push(findPlayerByName(players, pName));
-        }
-
-        ps.push(p);
-      }
-
-      return ps;
-    }
-  };
-
-  const MaxPlayerView = () => {
-    const tms = splitParts();
-
-    return (
-      <Flex justify="center" gap={4} flexWrap="wrap" w="100%">
-        {tms.map((ppl: any[], idx: number) => (
-          <VStack key={idx} spacing={3} flex={{ base: "1 1 100%", md: "1 1 320px" }} maxW="360px">
-            {ppl.map((player: PlayerDetails, index: number) => {
-              if (!player.setScore1) {
-                return (
-                  <Player
-                    compressed={playoffs}
-                    key={index}
-                    {...player}
-                    updatePlayers={setPlayers}
-                    index={players.indexOf(player)}
-                    players={players}
-                    inc={inc}
-                    onFeedEvent={handleFeedEvent}
-                clockRunning={clockRunning}
-                onToggleMinutes={toggleMinutes}
-                    setScore1={setScore1}
-                    setScore2={setScore2}
-                  />
-                );
-              } else {
-                return (
-                  <Player
-                    compressed={playoffs}
-                    key={index}
-                    {...player}
-                    updatePlayers={setPlayers}
-                    index={players.indexOf(player)}
-                    players={players}
-                    inc={inc}
-                    onFeedEvent={handleFeedEvent}
-                clockRunning={clockRunning}
-                onToggleMinutes={toggleMinutes}
-                  />
-                );
-              }
-            })}
-          </VStack>
-        ))}
-      </Flex>
+      </VStack>
     );
   };
 
@@ -1317,7 +1348,11 @@ const Home = () => {
                       (clockRunning && p.segStart
                         ? Math.floor((flushNow - p.segStart) / 1000)
                         : 0);
-                    return { ...p, minutes: +(secs / 60).toFixed(2) };
+                    return {
+                      ...p,
+                      minutes: +(secs / 60).toFixed(2),
+                      plusMinus: Math.round(p.plusMinus || 0),
+                    };
                   });
 
                   const endGameReq = await axios.post(`${apiUrl}/api/endGame`, {
@@ -1737,10 +1772,8 @@ const Home = () => {
               >
                 No active game. Tap “Select Teams” to start tracking.
               </Center>
-            ) : !playoffs ? (
-              <PhonePlayerView />
             ) : (
-              <MaxPlayerView />
+              <CourtView />
             )}
           </TabPanel>
           <TabPanel px={0}>

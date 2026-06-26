@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS stats (
   "twosAttempted"   INTEGER,
   rating            DOUBLE PRECISION,
   "gameId"          INTEGER,
-  minutes           DOUBLE PRECISION
+  minutes           DOUBLE PRECISION,
+  "plusMinus"       INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS playoff_stats (
@@ -79,7 +80,8 @@ CREATE TABLE IF NOT EXISTS playoff_stats (
   "twosAttempted"   INTEGER,
   rating            DOUBLE PRECISION,
   "gameId"          INTEGER,
-  minutes           DOUBLE PRECISION
+  minutes           DOUBLE PRECISION,
+  "plusMinus"       INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS game_feed (

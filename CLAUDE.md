@@ -81,6 +81,15 @@ player on/off. On End Game each player's flushed minutes is sent and stored.
 `aggregateStatColumns` exposes `AVG(minutes) AS min` (shown in the box score;
 null/"—" for pre-feature games).
 
+### Plus/minus + court layout
+`stats.plusMinus` / `playoff_stats.plusMinus` (INTEGER) — team point differential
+while a player is on court. Tracked live: a scoring play calls `applyPlusMinus`,
+which shifts every on-court player's +/- by ±the points (scoring team +, other -).
+Stored on End Game; box score shows it (`AVG("plusMinus") AS pm`). The live
+tracker's Stats tab lays players out as **two horizontal rows (one per team)**,
+and the On court/Benched toggle (`toggleMinutes`) blocks putting more than
+`playoffs ? 4 : 2` players from a team on the court (toast warning).
+
 ### "For fun" per-size views
 `players.weight` (INTEGER lbs, nullable, editable in the create/edit player
 forms). The stats screen has a Totals / Inch-for-inch / Pound-for-pound toggle

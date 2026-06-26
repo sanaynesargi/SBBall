@@ -21,6 +21,7 @@ type PlayerEntry = {
   threesAttempted: number;
   fts?: number;
   minutes?: number;
+  plusMinus?: number;
 };
 
 // Per-player career averages, used to backfill the non-shooting stats when
@@ -141,24 +142,25 @@ export async function POST(req: NextRequest) {
       }
 
       const minutes = p.minutes ?? null;
+      const plusMinus = p.plusMinus ?? null;
 
       if (isPlayoff) {
         await query(
           `INSERT INTO playoff_stats
              (ast, blk, "defReb", fouls, "playerName", "offReb", stl, threes,
-              "threesAttempted", tov, twos, "twosAttempted", "gameId", fts, rating, minutes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+              "threesAttempted", tov, twos, "twosAttempted", "gameId", fts, rating, minutes, "plusMinus")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)`,
           [ast, blk, defReb, fouls, p.name, offReb, stl, p.threes,
-           p.threesAttempted, tov, p.twos, p.twosAttempted, gameId, ftsVal, rating, minutes]
+           p.threesAttempted, tov, p.twos, p.twosAttempted, gameId, ftsVal, rating, minutes, plusMinus]
         );
       } else {
         await query(
           `INSERT INTO stats
              (ast, blk, "defReb", fouls, "playerName", "offReb", stl, threes,
-              "threesAttempted", tov, twos, "twosAttempted", "gameId", rating, minutes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
+              "threesAttempted", tov, twos, "twosAttempted", "gameId", rating, minutes, "plusMinus")
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
           [ast, blk, defReb, fouls, p.name, offReb, stl, p.threes,
-           p.threesAttempted, tov, p.twos, p.twosAttempted, gameId, rating, minutes]
+           p.threesAttempted, tov, p.twos, p.twosAttempted, gameId, rating, minutes, plusMinus]
         );
       }
     }

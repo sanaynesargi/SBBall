@@ -10,6 +10,7 @@ interface BoxScorePlayerProps {
   blk: number;
   fg: number;
   min?: number | null;
+  pm?: number | null;
   rtg: number;
 }
 
@@ -22,6 +23,7 @@ export const BoxScorePlayer = ({
   blk,
   fg,
   min,
+  pm,
   rtg,
 }: BoxScorePlayerProps) => {
   return (
@@ -54,10 +56,15 @@ export const BoxScorePlayer = ({
           {rtg.toFixed(2)}
         </Text>
       </HStack>
-      <SimpleGrid columns={{ base: 4, md: 7 }} spacing={2}>
+      <SimpleGrid columns={{ base: 4, md: 8 }} spacing={2}>
         <RealStatShort
           statName="min"
           statNum={min == null ? "—" : min.toFixed(1)}
+          sm
+        />
+        <RealStatShort
+          statName="+/-"
+          statNum={pm == null ? "—" : pm > 0 ? `+${Math.round(pm)}` : Math.round(pm)}
           sm
         />
         <RealStatShort statName="pts" statNum={Math.round(pts)} sm />
