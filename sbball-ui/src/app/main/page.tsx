@@ -19,6 +19,7 @@ import {
   Tab,
   TabPanels,
   TabPanel,
+  Tooltip,
 } from "@chakra-ui/react";
 import { useEffect, useState, type ReactNode } from "react";
 import Layout from "../../../components/Layout.tsx";
@@ -83,6 +84,37 @@ const numTh = {
   ...sortableThProps,
   textAlign: "end" as const,
 };
+
+// Sortable table header that shows the stat's full name on hover.
+const HeadCell = ({
+  label,
+  full,
+  onClick,
+  numeric = true,
+}: {
+  label: string;
+  full: string;
+  onClick: () => void;
+  numeric?: boolean;
+}) => (
+  <Tooltip
+    label={full}
+    hasArrow
+    placement="top"
+    openDelay={150}
+    fontSize="xs"
+    bg="bg.card"
+    color="text.primary"
+    border="1px solid"
+    borderColor="border.subtle"
+    px={2.5}
+    py={1.5}
+  >
+    <Th {...(numeric ? numTh : sortableThProps)} onClick={onClick}>
+      {label}
+    </Th>
+  </Tooltip>
+);
 
 const SortableTable = ({
   data,
@@ -195,27 +227,13 @@ const SortableTable = ({
         <Table size="sm" variant="unstyled">
           <Thead>
             <Tr>
-              <Th {...sortableThProps} onClick={() => handleSort("player")}>
-                Player
-              </Th>
-              <Th {...numTh} onClick={() => handleSort("pts")}>
-                PTS
-              </Th>
-              <Th {...numTh} onClick={() => handleSort("reb")}>
-                REB
-              </Th>
-              <Th {...numTh} onClick={() => handleSort("ast")}>
-                AST
-              </Th>
-              <Th {...numTh} onClick={() => handleSort("stl")}>
-                STL
-              </Th>
-              <Th {...numTh} onClick={() => handleSort("blk")}>
-                BLK
-              </Th>
-              <Th {...numTh} onClick={() => handleSort("min")}>
-                MPG
-              </Th>
+              <HeadCell label="Player" full="Player" numeric={false} onClick={() => handleSort("player")} />
+              <HeadCell label="PTS" full="Points" onClick={() => handleSort("pts")} />
+              <HeadCell label="REB" full="Rebounds" onClick={() => handleSort("reb")} />
+              <HeadCell label="AST" full="Assists" onClick={() => handleSort("ast")} />
+              <HeadCell label="STL" full="Steals" onClick={() => handleSort("stl")} />
+              <HeadCell label="BLK" full="Blocks" onClick={() => handleSort("blk")} />
+              <HeadCell label="MPG" full="Minutes per game" onClick={() => handleSort("min")} />
             </Tr>
           </Thead>
           <Tbody>
@@ -242,27 +260,13 @@ const SortableTable = ({
         <Table size="sm" variant="unstyled">
           <Thead>
             <Tr>
-              <Th {...sortableThProps} onClick={() => handleSort3("player")}>
-                Player
-              </Th>
-              <Th {...numTh} onClick={() => handleSort3("fgA")}>
-                FGM
-              </Th>
-              <Th {...numTh} onClick={() => handleSort3("fgM")}>
-                FGA
-              </Th>
-              <Th {...numTh} onClick={() => handleSort3("tpfgM")}>
-                2PM
-              </Th>
-              <Th {...numTh} onClick={() => handleSort3("tpfgA")}>
-                2PA
-              </Th>
-              <Th {...numTh} onClick={() => handleSort3("ttpfgM")}>
-                3PM
-              </Th>
-              <Th {...numTh} onClick={() => handleSort3("ttpfgA")}>
-                3PA
-              </Th>
+              <HeadCell label="Player" full="Player" numeric={false} onClick={() => handleSort3("player")} />
+              <HeadCell label="FGM" full="Field goals made / game" onClick={() => handleSort3("fgA")} />
+              <HeadCell label="FGA" full="Field goals attempted / game" onClick={() => handleSort3("fgM")} />
+              <HeadCell label="2PM" full="2-pointers made / game" onClick={() => handleSort3("tpfgM")} />
+              <HeadCell label="2PA" full="2-pointers attempted / game" onClick={() => handleSort3("tpfgA")} />
+              <HeadCell label="3PM" full="3-pointers made / game" onClick={() => handleSort3("ttpfgM")} />
+              <HeadCell label="3PA" full="3-pointers attempted / game" onClick={() => handleSort3("ttpfgA")} />
             </Tr>
           </Thead>
           <Tbody>
@@ -285,18 +289,10 @@ const SortableTable = ({
         <Table size="sm" variant="unstyled">
           <Thead>
             <Tr>
-              <Th {...sortableThProps} onClick={() => handleSort2("player")}>
-                Player
-              </Th>
-              <Th {...numTh} onClick={() => handleSort2("fg")}>
-                FG%
-              </Th>
-              <Th {...numTh} onClick={() => handleSort2("tp")}>
-                3P%
-              </Th>
-              <Th {...numTh} onClick={() => handleSort2("tov")}>
-                TOV
-              </Th>
+              <HeadCell label="Player" full="Player" numeric={false} onClick={() => handleSort2("player")} />
+              <HeadCell label="FG%" full="Field goal percentage" onClick={() => handleSort2("fg")} />
+              <HeadCell label="3P%" full="3-point percentage" onClick={() => handleSort2("tp")} />
+              <HeadCell label="TOV" full="Turnovers / game" onClick={() => handleSort2("tov")} />
             </Tr>
           </Thead>
           <Tbody>
@@ -419,6 +415,13 @@ const EmptyCard = ({ children }: { children: ReactNode }) => (
 );
 
 const NORM_COLS = ["pts", "reb", "ast", "stl", "blk"] as const;
+const NORM_FULL: Record<string, string> = {
+  pts: "Points",
+  reb: "Rebounds",
+  ast: "Assists",
+  stl: "Steals",
+  blk: "Blocks",
+};
 
 // "Just for fun" per-unit table: stats divided by height (inches) or weight (lbs).
 const NormalizedTable = ({
@@ -453,13 +456,14 @@ const NormalizedTable = ({
       <Table size="sm" variant="unstyled">
         <Thead>
           <Tr>
-            <Th {...sortableThProps} onClick={() => handle("player")}>
-              Player
-            </Th>
+            <HeadCell label="Player" full="Player" numeric={false} onClick={() => handle("player")} />
             {NORM_COLS.map((k) => (
-              <Th key={k} {...numTh} onClick={() => handle(k)}>
-                {k.toUpperCase()}
-              </Th>
+              <HeadCell
+                key={k}
+                label={k.toUpperCase()}
+                full={`${NORM_FULL[k]} per ${unit === "inch" ? "inch" : "lb"}`}
+                onClick={() => handle(k)}
+              />
             ))}
           </Tr>
         </Thead>
@@ -519,23 +523,19 @@ const ShotMixTable = ({ data }: { data: any[] }) => {
     return order === "desc" ? b[sortBy] - a[sortBy] : a[sortBy] - b[sortBy];
   });
   const cols = [
-    { k: "pct2", label: "2PT%" },
-    { k: "pct3", label: "3PT%" },
-    { k: "pctFt", label: "FT%" },
-    { k: "threeRate", label: "3PA RATE" },
+    { k: "pct2", label: "2PT%", full: "% of points from 2-pointers" },
+    { k: "pct3", label: "3PT%", full: "% of points from 3-pointers" },
+    { k: "pctFt", label: "FT%", full: "% of points from free throws" },
+    { k: "threeRate", label: "3PA RATE", full: "3-point attempt rate (share of FGA)" },
   ];
   return (
     <TableCard title="Shot Mix" hint="% OF POINTS · 3PA RATE">
       <Table size="sm" variant="unstyled">
         <Thead>
           <Tr>
-            <Th {...sortableThProps} onClick={() => handle("player")}>
-              Player
-            </Th>
+            <HeadCell label="Player" full="Player" numeric={false} onClick={() => handle("player")} />
             {cols.map((c) => (
-              <Th key={c.k} {...numTh} onClick={() => handle(c.k)}>
-                {c.label}
-              </Th>
+              <HeadCell key={c.k} label={c.label} full={c.full} onClick={() => handle(c.k)} />
             ))}
           </Tr>
         </Thead>
@@ -593,26 +593,22 @@ const AdvancedTable = ({ data }: { data: any[] }) => {
   const num = (v: any, d = 1, suf = "") =>
     v == null ? "—" : !Number.isFinite(v) ? "∞" : `${Number(v).toFixed(d)}${suf}`;
   const cols = [
-    { k: "gmsc", label: "GMSC" },
-    { k: "efg", label: "eFG%" },
-    { k: "pps", label: "PTS/SH" },
-    { k: "threeRate", label: "3PA%" },
-    { k: "astTo", label: "AST/TO" },
-    { k: "min", label: "MPG" },
-    { k: "pm", label: "+/-" },
+    { k: "gmsc", label: "GMSC", full: "Game Score (avg per-game performance rating)" },
+    { k: "efg", label: "eFG%", full: "Effective field goal % (credits 3-pointers)" },
+    { k: "pps", label: "PTS/SH", full: "Points per shot (points / FG attempt)" },
+    { k: "threeRate", label: "3PA%", full: "3-point attempt rate (share of FGA)" },
+    { k: "astTo", label: "AST/TO", full: "Assist-to-turnover ratio" },
+    { k: "min", label: "MPG", full: "Minutes per game" },
+    { k: "pm", label: "+/-", full: "Plus/minus (team point differential on court)" },
   ];
   return (
     <TableCard title="Advanced" hint="GAME SCORE · EFFICIENCY">
       <Table size="sm" variant="unstyled">
         <Thead>
           <Tr>
-            <Th {...sortableThProps} onClick={() => handle("player")}>
-              Player
-            </Th>
+            <HeadCell label="Player" full="Player" numeric={false} onClick={() => handle("player")} />
             {cols.map((c) => (
-              <Th key={c.k} {...numTh} onClick={() => handle(c.k)}>
-                {c.label}
-              </Th>
+              <HeadCell key={c.k} label={c.label} full={c.full} onClick={() => handle(c.k)} />
             ))}
           </Tr>
         </Thead>
