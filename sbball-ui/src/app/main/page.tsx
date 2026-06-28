@@ -14,6 +14,11 @@ import {
   Text,
   Heading,
   Button,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
 } from "@chakra-ui/react";
 import { useEffect, useState, type ReactNode } from "react";
 import Layout from "../../../components/Layout.tsx";
@@ -807,17 +812,35 @@ const Home = () => {
       {tableData.length === 0 ? (
         <EmptyCard>No games logged yet for this mode.</EmptyCard>
       ) : normalize === "total" ? (
-        <VStack spacing={5} align="stretch">
-          <SortableTable
-            data={tableData}
-            defaultSortColumn="pts"
-            defaultSortColumn2="fg"
-            defaultSortColumn3="fgA"
-            defaultSortOrder="desc"
-          />
-          <ShotMixTable data={tableData} />
-          <AdvancedTable data={tableData} />
-        </VStack>
+        <Tabs variant="soft-rounded" colorScheme="green">
+          <TabList
+            gap={2}
+            mb={5}
+            overflowX="auto"
+            sx={{ "&::-webkit-scrollbar": { display: "none" } }}
+          >
+            <Tab whiteSpace="nowrap">Per Game</Tab>
+            <Tab whiteSpace="nowrap">Shot Mix</Tab>
+            <Tab whiteSpace="nowrap">Advanced</Tab>
+          </TabList>
+          <TabPanels>
+            <TabPanel px={0}>
+              <SortableTable
+                data={tableData}
+                defaultSortColumn="pts"
+                defaultSortColumn2="fg"
+                defaultSortColumn3="fgA"
+                defaultSortOrder="desc"
+              />
+            </TabPanel>
+            <TabPanel px={0}>
+              <ShotMixTable data={tableData} />
+            </TabPanel>
+            <TabPanel px={0}>
+              <AdvancedTable data={tableData} />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
       ) : normalizedRows.length === 0 ? (
         <EmptyCard>
           {normalize === "pound"
