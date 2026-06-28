@@ -554,6 +554,92 @@ const ShotMixTable = ({ data }: { data: any[] }) => {
   );
 };
 
+// Advanced metrics leaderboard: Game Score, efficiency, ball movement.
+const AdvancedTable = ({ data }: { data: any[] }) => {
+  const rows = data.map((r) => ({
+    player: r.player,
+    gmsc: r.gmsc ?? 0,
+    efg: r.fgA > 0 ? ((r.fgM + 0.5 * r.ttpfgM) / r.fgA) * 100 : 0,
+    pps: r.fgA > 0 ? r.pts / r.fgA : 0,
+    threeRate: r.fgA > 0 ? (r.ttpfgA / r.fgA) * 100 : 0,
+    astTo: r.tov > 0 ? r.ast / r.tov : r.ast > 0 ? Infinity : 0,
+    min: r.min,
+    pm: r.pm,
+  }));
+  const [sortBy, setSortBy] = useState<string>("gmsc");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const handle = (c: string) => {
+    if (sortBy === c) setOrder((o) => (o === "asc" ? "desc" : "asc"));
+    else {
+      setSortBy(c);
+      setOrder("desc");
+    }
+  };
+  const val = (x: any) => (Number.isFinite(x) ? x : x === Infinity ? 1e9 : -1e9);
+  const sorted = [...rows].sort((a: any, b: any) => {
+    if (sortBy === "player")
+      return order === "desc"
+        ? String(b.player).localeCompare(a.player)
+        : String(a.player).localeCompare(b.player);
+    return order === "desc"
+      ? val(b[sortBy]) - val(a[sortBy])
+      : val(a[sortBy]) - val(b[sortBy]);
+  });
+  const num = (v: any, d = 1, suf = "") =>
+    v == null ? "—" : !Number.isFinite(v) ? "∞" : `${Number(v).toFixed(d)}${suf}`;
+  const cols = [
+    { k: "gmsc", label: "GMSC" },
+    { k: "efg", label: "eFG%" },
+    { k: "pps", label: "PTS/SH" },
+    { k: "threeRate", label: "3PA%" },
+    { k: "astTo", label: "AST/TO" },
+    { k: "min", label: "MPG" },
+    { k: "pm", label: "+/-" },
+  ];
+  return (
+    <TableCard title="Advanced" hint="GAME SCORE · EFFICIENCY">
+      <Table size="sm" variant="unstyled">
+        <Thead>
+          <Tr>
+            <Th {...sortableThProps} onClick={() => handle("player")}>
+              Player
+            </Th>
+            {cols.map((c) => (
+              <Th key={c.k} {...numTh} onClick={() => handle(c.k)}>
+                {c.label}
+              </Th>
+            ))}
+          </Tr>
+        </Thead>
+        <Tbody>
+          {sorted.map((r: any, i: number) => (
+            <Tr key={i} _hover={{ bg: "bg.hover" }}>
+              <Td fontFamily="heading" fontWeight={800} whiteSpace="nowrap">
+                {r.player}
+              </Td>
+              <Td {...numTd} color="accent.400">
+                {num(r.gmsc, 1)}
+              </Td>
+              <Td {...numTd}>{num(r.efg, 1, "%")}</Td>
+              <Td {...numTd}>{num(r.pps, 2)}</Td>
+              <Td {...numTd}>{num(r.threeRate, 0, "%")}</Td>
+              <Td {...numTd}>{num(r.astTo, 2)}</Td>
+              <Td {...numTd}>{num(r.min, 1)}</Td>
+              <Td {...numTd}>
+                {r.pm == null
+                  ? "—"
+                  : r.pm > 0
+                  ? `+${r.pm.toFixed(1)}`
+                  : r.pm.toFixed(1)}
+              </Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </TableCard>
+  );
+};
+
 const Home = () => {
   const [tableData, setTableData] = useState([]);
   const [mode, setMode] = useState(false);
@@ -730,6 +816,7 @@ const Home = () => {
             defaultSortOrder="desc"
           />
           <ShotMixTable data={tableData} />
+          <AdvancedTable data={tableData} />
         </VStack>
       ) : normalizedRows.length === 0 ? (
         <EmptyCard>

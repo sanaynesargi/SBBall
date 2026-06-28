@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
       tov: row.tov,
       min: row.min,
       pm: row.pm,
+      gmsc: row.gmsc,
       fg: row.fg * 100,
       tp: row.ttpfgA > 0 ? (row.ttpfgM / row.ttpfgA) * 100 : 0,
       tpfgA: row.tpfgA,
