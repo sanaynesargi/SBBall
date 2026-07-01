@@ -790,13 +790,14 @@ const Home = () => {
     });
   };
 
-  // Sub a player on/off the court. Flushes their running segment when benching.
-  // Guards against putting too many of a team on the court at once.
+  // Sub a player on/off the court. Auto-pauses the clock (subs are dead-ball
+  // edits), flushes running minutes, and blocks going over the court size.
   const toggleMinutes = (index: number) => {
     const now = Date.now();
     const target = players[index];
-    if (target && !target.active) {
-      const max = playoffs ? 4 : 2;
+    if (!target) return;
+    const max = playoffs ? 4 : 2;
+    if (!target.active) {
       const onCourt = players.filter(
         (p) => p.team === target.team && p.active
       ).length;
@@ -811,6 +812,8 @@ const Home = () => {
         return;
       }
     }
+    // Auto-pause the clock while the lineup is being edited.
+    if (clockRunning) stopClock();
     setPlayers((prev) => {
       const next = prev.map((p, i) => {
         if (i !== index) return p;
@@ -820,7 +823,8 @@ const Home = () => {
             : p.secondsPlayed || 0;
           return { ...p, active: false, secondsPlayed: sp, segStart: null };
         }
-        return { ...p, active: true, segStart: clockRunning ? now : null };
+        // Clock is paused after a sub, so accrual starts on the next Start.
+        return { ...p, active: true, segStart: null };
       });
       localStorage.setItem("gameState", JSON.stringify(next));
       return next;
@@ -828,6 +832,21 @@ const Home = () => {
   };
 
   const startClock = () => {
+    // Don't run the clock with an invalid lineup (too many / too few on court).
+    if (players.length > 0 && lineupProblems.length > 0) {
+      const p = lineupProblems[0];
+      toast({
+        title:
+          p.active > p.required
+            ? "Too many players on the court"
+            : "Too few players on the court",
+        description: `Team ${p.team} has ${p.active} on the court but needs ${p.required}. Fix the lineup to start.`,
+        status: "warning",
+        duration: 3500,
+        isClosable: true,
+      });
+      return;
+    }
     const startedAt = Date.now();
     setClockStartedAt(startedAt);
     setClockRunning(true);
@@ -929,7 +948,7 @@ const Home = () => {
 
     let pulledPlayerData = transformData(playersReq.data.data);
 
-    let players = [];
+    let players: any[] = [];
 
     setScore1([0, 0]);
     setScore2([0, 0]);
@@ -939,7 +958,9 @@ const Home = () => {
     setSelected(null);
     setUndoStack([]);
 
-    for (const player of team1) {
+    const courtSize = playoffs ? 4 : 2;
+
+    team1.forEach((player, idx) => {
       players.push({
         name: player,
         position: `${pulledPlayerData[player].position}${
@@ -964,13 +985,13 @@ const Home = () => {
         setScore2,
         team: 1,
         secondsPlayed: 0,
-        active: true,
+        active: idx < courtSize, // default starters = first courtSize
         segStart: null,
         plusMinus: 0,
       });
-    }
+    });
 
-    for (const player of team2) {
+    team2.forEach((player, idx) => {
       players.push({
         name: player,
         position: `${pulledPlayerData[player].position}${
@@ -995,13 +1016,18 @@ const Home = () => {
         setScore2,
         team: 2,
         secondsPlayed: 0,
-        active: true,
+        active: idx < courtSize,
         segStart: null,
         plusMinus: 0,
       });
-    }
+    });
 
     resetPlayerScores(players);
+
+    // If a team has more players than court slots, prompt to pick starters.
+    const subsExist =
+      team1.length > courtSize || team2.length > courtSize;
+    if (subsExist) setStartersOpen(true);
   };
 
   const resetPlayerScores = (ps: any) => {
@@ -1076,6 +1102,17 @@ const Home = () => {
   const [inc, setInc] = useState(1);
   const [selected, setSelected] = useState<number | null>(null);
   const [undoStack, setUndoStack] = useState<any[]>([]);
+  const [startersOpen, setStartersOpen] = useState(false);
+
+  // Court size per team (2v2 -> 2, 4v4 -> 4) and lineup validation.
+  const courtSize = playoffs ? 4 : 2;
+  const teamActive = (t: number) =>
+    players.filter((p) => p.team === t && p.active).length;
+  const teamCount = (t: number) => players.filter((p) => p.team === t).length;
+  const teamRequired = (t: number) => Math.min(teamCount(t), courtSize);
+  const lineupProblems = ([1, 2] as const)
+    .filter((t) => teamCount(t) > 0 && teamActive(t) !== teamRequired(t))
+    .map((t) => ({ team: t, active: teamActive(t), required: teamRequired(t) }));
 
   // Refs mirror latest state so applyStat reads fresh values even on rapid input.
   const playersRef = useRef(players);
@@ -1267,6 +1304,115 @@ const Home = () => {
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
+
+  const StartersModal = () => {
+    const [sel, setSel] = useState<Set<number>>(new Set());
+    useEffect(() => {
+      if (startersOpen) {
+        const s = new Set<number>();
+        players.forEach((p, i) => {
+          if (p.active) s.add(i);
+        });
+        setSel(s);
+      }
+    }, [startersOpen]);
+
+    const selCount = (t: number) =>
+      Array.from(sel).filter((i) => players[i]?.team === t).length;
+    const toggle = (i: number) => {
+      const t = players[i].team;
+      setSel((prev) => {
+        const n = new Set(prev);
+        if (n.has(i)) {
+          n.delete(i);
+          return n;
+        }
+        const cnt = Array.from(prev).filter((x) => players[x]?.team === t).length;
+        if (cnt >= courtSize) return prev;
+        n.add(i);
+        return n;
+      });
+    };
+    const valid = ([1, 2] as const).every(
+      (t) => teamCount(t) === 0 || selCount(t) === teamRequired(t)
+    );
+    const confirm = () => {
+      setPlayers((prev) => {
+        const next = prev.map((p, i) => ({
+          ...p,
+          active: sel.has(i),
+          segStart: null,
+        }));
+        localStorage.setItem("gameState", JSON.stringify(next));
+        return next;
+      });
+      if (clockRunning) stopClock();
+      setStartersOpen(false);
+    };
+
+    return (
+      <Modal
+        isOpen={startersOpen}
+        onClose={() => setStartersOpen(false)}
+        isCentered
+        size={{ base: "full", md: "lg" }}
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader fontFamily="heading" fontWeight={800}>
+            Select starters
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text color="text.muted" fontSize="sm" mb={4}>
+              Pick who starts on the court — {courtSize} per team.
+            </Text>
+            <VStack spacing={5} align="stretch">
+              {([1, 2] as const).map((t) => {
+                const color = t === 1 ? "team1.500" : "team2.500";
+                const ok = selCount(t) === teamRequired(t);
+                return (
+                  <Box key={t}>
+                    <Flex justify="space-between" align="baseline" mb={2}>
+                      <Text fontFamily="heading" fontWeight={800} color={color}>
+                        Team {t}
+                      </Text>
+                      <Text
+                        fontSize="sm"
+                        fontWeight={800}
+                        color={ok ? "accent.400" : "warn.500"}
+                      >
+                        {selCount(t)} / {teamRequired(t)}
+                      </Text>
+                    </Flex>
+                    <Flex gap={2} wrap="wrap">
+                      {players.map((p, i) =>
+                        p.team === t ? (
+                          <Button
+                            key={i}
+                            size="sm"
+                            variant={sel.has(i) ? "accent" : "surface"}
+                            onClick={() => toggle(i)}
+                          >
+                            #{p.jersey} {p.name}
+                          </Button>
+                        ) : null
+                      )}
+                    </Flex>
+                  </Box>
+                );
+              })}
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="accent" onClick={confirm} isDisabled={!valid}>
+              Confirm starters
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    );
+  };
 
   const renderCard = (player: PlayerDetails, index: number) => (
     <Box
@@ -1895,6 +2041,13 @@ const Home = () => {
             <Button
               size="sm"
               variant="surface"
+              onClick={() => setStartersOpen(true)}
+            >
+              Lineup
+            </Button>
+            <Button
+              size="sm"
+              variant="surface"
               onClick={() => {
                 setPlayoffs(!playoffs);
               }}
@@ -1915,6 +2068,8 @@ const Home = () => {
           </VStack>
         </Flex>
       </Box>
+
+      <StartersModal />
 
       <Tabs variant="soft-rounded" colorScheme="green" size="sm">
         <TabList gap={2} justifyContent="center" mb={4}>
@@ -1938,6 +2093,41 @@ const Home = () => {
               </Center>
             ) : (
               <>
+                {lineupProblems.length > 0 && (
+                  <Flex
+                    align="center"
+                    justify="center"
+                    gap={3}
+                    mb={4}
+                    py={2}
+                    px={3}
+                    borderRadius="tile"
+                    bg="rgba(255,93,93,0.12)"
+                    border="1px solid"
+                    borderColor="neg.500"
+                    color="neg.500"
+                    fontSize="sm"
+                    fontWeight={700}
+                    wrap="wrap"
+                  >
+                    <Text>
+                      {lineupProblems
+                        .map(
+                          (p) =>
+                            `Team ${p.team}: ${p.active}/${p.required} on court`
+                        )
+                        .join(" · ")}{" "}
+                      — fix the lineup to start the clock.
+                    </Text>
+                    <Button
+                      size="xs"
+                      variant="surface"
+                      onClick={() => setStartersOpen(true)}
+                    >
+                      Edit lineup
+                    </Button>
+                  </Flex>
+                )}
                 {statsLocked && (
                   <Flex
                     align="center"
