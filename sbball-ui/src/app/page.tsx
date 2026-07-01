@@ -428,46 +428,71 @@ const TeamSelect = ({
 }: TeamSelectProps) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
+  const [roster, setRoster] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  let [playerName, setPlayerName] = useState("");
-  const [, forceUpdate] = useReducer((x) => x + 1, 0);
+  // Load the roster from the DB when the dialog opens.
+  useEffect(() => {
+    if (!isOpen) return;
+    setLoading(true);
+    axios
+      .get(`${apiUrl}/api/getPlayers`)
+      .then((res) => {
+        if (!res.data.error) {
+          const data = (res.data.data ?? [])
+            .slice()
+            .sort((a: any, b: any) =>
+              String(a.playerName).localeCompare(b.playerName)
+            );
+          setRoster(data);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [isOpen]);
 
-  const TeamChip = ({
-    player,
-    index,
+  const teamOf = (name: string) =>
+    team1.includes(name) ? 1 : team2.includes(name) ? 2 : 0;
+
+  // Assign a player to a team (0 = unassign). Immutable so props update.
+  const assign = (name: string, team: number) => {
+    const t1 = team1.filter((n) => n !== name);
+    const t2 = team2.filter((n) => n !== name);
+    if (team === 1) t1.push(name);
+    else if (team === 2) t2.push(name);
+    setTeam1(t1);
+    setTeam2(t2);
+  };
+
+  const TeamBtn = ({
+    name,
+    team,
+    label,
     color,
-    onRemove,
+    fg,
   }: {
-    player: string;
-    index: number;
+    name: string;
+    team: number;
+    label: string;
     color: string;
-    onRemove: () => void;
-  }) => (
-    <Flex
-      align="center"
-      gap={2}
-      bg="bg.surface"
-      border="1px solid"
-      borderColor="border.subtle"
-      borderRadius="full"
-      pl={3}
-      pr={1}
-      py={1}
-    >
-      <Box w="8px" h="8px" borderRadius="full" bg={color} />
-      <Text fontWeight={700} fontSize="sm" flex="1">
-        {player}
-      </Text>
-      <IconButton
-        icon={<DeleteIcon />}
-        aria-label="delete"
-        size="xs"
-        variant="ghost"
-        colorScheme="red"
-        onClick={onRemove}
-      />
-    </Flex>
-  );
+    fg: string;
+  }) => {
+    const on = teamOf(name) === team;
+    return (
+      <Button
+        size="sm"
+        minW="46px"
+        bg={on ? color : "bg.surface"}
+        color={on ? fg : "text.muted"}
+        border="1px solid"
+        borderColor={on ? color : "border.subtle"}
+        _hover={{ borderColor: color }}
+        onClick={() => assign(name, on ? 0 : team)}
+      >
+        {label}
+      </Button>
+    );
+  };
 
   return (
     <Box>
@@ -483,115 +508,93 @@ const TeamSelect = ({
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Flex direction={{ base: "column", md: "row" }} gap={5} align="start">
-              <FormControl>
-                <FormLabel color="text.muted" fontSize="sm" fontWeight={600}>
-                  Player Name
-                </FormLabel>
-                <Input
-                  bg="bg.surface"
-                  borderColor="border.subtle"
-                  _hover={{ borderColor: "accent.500" }}
-                  _focus={{ borderColor: "accent.500", boxShadow: "none" }}
-                  placeholder="e.g. Lebron James"
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  value={playerName}
-                />
-                <HStack mt={3}>
-                  <Button
-                    flex="1"
-                    bg="team1.500"
-                    color="#04121F"
-                    _hover={{ bg: "team1.400" }}
-                    onClick={() => {
-                      let oldTeam = team1;
-                      oldTeam.push(playerName);
-                      setTeam1(oldTeam);
-                      toast({
-                        title: "Player Added",
-                        description: `${playerName} added to Team 1`,
-                        status: "success",
-                        duration: 3000,
-                        isClosable: true,
-                      });
-                      setPlayerName("");
-                    }}
-                  >
-                    Team 1
-                  </Button>
-                  <Button
-                    flex="1"
-                    bg="team2.500"
-                    color="#1A1400"
-                    _hover={{ bg: "team2.400" }}
-                    onClick={() => {
-                      let oldTeam = team2;
-                      oldTeam.push(playerName);
-                      setTeam2(oldTeam);
-                      toast({
-                        title: "Player Added",
-                        description: `${playerName} added to Team 2`,
-                        status: "success",
-                        duration: 3000,
-                        isClosable: true,
-                      });
-                      setPlayerName("");
-                    }}
-                  >
-                    Team 2
-                  </Button>
-                </HStack>
-              </FormControl>
-              <VStack w={{ base: "100%", md: "60%" }} align="stretch" spacing={2}>
-                {team1.map((player: string, index: number) => (
-                  <TeamChip
-                    key={`t1-${index}`}
-                    player={player}
-                    index={index}
-                    color="team1.500"
-                    onRemove={() => {
-                      toast({
-                        title: "Player Removed",
-                        description: `${player} removed from Team 1`,
-                        status: "success",
-                        duration: 3000,
-                        isClosable: true,
-                      });
-                      let old = team1;
-                      old.splice(index, 1);
-                      setTeam1(old);
-                      forceUpdate();
-                    }}
-                  />
-                ))}
-                {team2.map((player: string, index: number) => (
-                  <TeamChip
-                    key={`t2-${index}`}
-                    player={player}
-                    index={index}
-                    color="team2.500"
-                    onRemove={() => {
-                      toast({
-                        title: "Player Removed",
-                        description: `${player} removed from Team 2`,
-                        status: "success",
-                        duration: 3000,
-                        isClosable: true,
-                      });
-                      let old = team2;
-                      old.splice(index, 1);
-                      setTeam2(old);
-                      forceUpdate();
-                    }}
-                  />
-                ))}
-              </VStack>
+            <Flex justify="space-between" mb={4} gap={4}>
+              <HStack spacing={2}>
+                <Box w="10px" h="10px" borderRadius="full" bg="team1.500" />
+                <Text fontWeight={700} fontSize="sm">
+                  Team 1 · {team1.length}
+                </Text>
+              </HStack>
+              <HStack spacing={2}>
+                <Text fontWeight={700} fontSize="sm">
+                  Team 2 · {team2.length}
+                </Text>
+                <Box w="10px" h="10px" borderRadius="full" bg="team2.500" />
+              </HStack>
             </Flex>
+
+            {loading ? (
+              <Text color="text.faint" py={6} textAlign="center">
+                Loading roster…
+              </Text>
+            ) : roster.length === 0 ? (
+              <Text color="text.faint" py={6} textAlign="center">
+                No players in your roster — add some in the Players tab.
+              </Text>
+            ) : (
+              <VStack align="stretch" spacing={2} maxH="60vh" overflowY="auto">
+                {roster.map((p: any) => {
+                  const to = teamOf(p.playerName);
+                  const accent =
+                    to === 1 ? "team1.500" : to === 2 ? "team2.500" : "border.subtle";
+                  return (
+                    <Flex
+                      key={p.id ?? p.playerName}
+                      align="center"
+                      gap={3}
+                      bg="bg.surface"
+                      border="1px solid"
+                      borderColor={to ? accent : "border.subtle"}
+                      borderRadius="tile"
+                      px={3}
+                      py={2}
+                    >
+                      <Box flex="1" minW={0}>
+                        <Text fontWeight={700} fontSize="sm" isTruncated>
+                          {p.playerName}
+                        </Text>
+                        <Text fontSize="11px" color="text.faint">
+                          #{p.jersey} · {p.position}
+                          {p.secPosition ? `/${p.secPosition}` : ""}
+                        </Text>
+                      </Box>
+                      <HStack spacing={2}>
+                        <TeamBtn
+                          name={p.playerName}
+                          team={1}
+                          label="T1"
+                          color="team1.500"
+                          fg="#04121F"
+                        />
+                        <TeamBtn
+                          name={p.playerName}
+                          team={2}
+                          label="T2"
+                          color="team2.500"
+                          fg="#1A1400"
+                        />
+                      </HStack>
+                    </Flex>
+                  );
+                })}
+              </VStack>
+            )}
           </ModalBody>
 
-          <ModalFooter>
+          <ModalFooter gap={3}>
+            <Button
+              variant="ghostMuted"
+              onClick={() => {
+                setTeam1([]);
+                setTeam2([]);
+              }}
+              isDisabled={team1.length === 0 && team2.length === 0}
+            >
+              Clear
+            </Button>
             <Button
               variant="accent"
+              isDisabled={team1.length === 0 && team2.length === 0}
               onClick={() => {
                 localStorage.setItem("T1", JSON.stringify(team1));
                 localStorage.setItem("T2", JSON.stringify(team2));
