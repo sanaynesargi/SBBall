@@ -31,7 +31,13 @@ import {
   Tabs,
 } from "@chakra-ui/react";
 import { DeleteIcon } from "@chakra-ui/icons";
-import { useEffect, useReducer, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import Layout from "../../components/Layout.tsx";
 import { FeedEntry } from "../../components/FeedEntry.tsx";
 import axios from "axios";
@@ -117,6 +123,10 @@ interface PlayerDetailsProps {
   onScore?: Function;
   // disable stat entry while the game clock is stopped mid-game
   locked?: boolean;
+  // central stat handler (index, field)
+  onStat?: Function;
+  // selection highlight (keyboard)
+  isSelected?: boolean;
 }
 
 // set the teams up
@@ -165,6 +175,7 @@ const StatCell = ({
     justify="center"
     gap={0.5}
     py={compact ? 1.5 : 2.5}
+    minH={{ base: compact ? "46px" : "58px", md: "auto" }}
     bg="bg.surface"
     border="1px solid"
     borderColor="border.subtle"
@@ -228,142 +239,13 @@ const Player = ({
   plusMinus = 0,
   onScore,
   locked = false,
+  onStat,
+  isSelected = false,
 }: PlayerDetailsProps) => {
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
-  const updateStats = (field: string) => {
-    let scoreDelta = 0; // signed points added to this player's team
-    let player: PlayerDetails = {
-      name,
-      jersey,
-      fouls,
-      position,
-      twos,
-      threes,
-      ast,
-      blk,
-      defReb,
-      offReb,
-      stl,
-      threesAttempted,
-      tov,
-      twosAttempted,
-      team,
-      score1,
-      score2,
-      setScore1,
-      setScore2,
-      fts,
-      // preserve minutes tracking across stat updates
-      secondsPlayed,
-      active,
-      segStart,
-      plusMinus,
-    };
-
-    if (field == "twos") {
-      inc > 0
-        ? player[field as keyof PlayerDetails]++
-        : player[field as keyof PlayerDetails]--;
-
-      if (inc > 0) {
-        player.twosAttempted++;
-      } else {
-        player.twosAttempted--;
-      }
-
-      if (team == 1) {
-        let old = score1;
-        old[0] += 1 * inc;
-        old[1] += 2 * inc;
-        setScore1(old);
-      } else {
-        let old = score2;
-        old[0] += 1 * inc;
-        old[1] += 2 * inc;
-        setScore2(old);
-      }
-      scoreDelta = 2 * inc;
-    } else if (field == "threes") {
-      inc > 0
-        ? player[field as keyof PlayerDetails]++
-        : player[field as keyof PlayerDetails]--;
-
-      if (inc > 0) {
-        player.threesAttempted++;
-      } else {
-        player.threesAttempted--;
-      }
-
-      if (team == 1) {
-        let old = score1;
-        old[0] += 2 * inc;
-        old[1] += 3 * inc;
-        setScore1(old);
-      } else {
-        let old = score2;
-        old[0] += 2 * inc;
-        old[1] += 3 * inc;
-        setScore2(old);
-      }
-      scoreDelta = 3 * inc;
-    } else if (field == "fts") {
-      inc > 0
-        ? player[field as keyof PlayerDetails]++
-        : player[field as keyof PlayerDetails]--;
-      if (team == 1) {
-        let old = score1;
-        old[0] += 0.5 * inc;
-        old[1] += 1 * inc;
-        setScore1(old);
-      } else {
-        let old = score2;
-        old[0] += 0.5 * inc;
-        old[1] += 1 * inc;
-        setScore2(old);
-      }
-      scoreDelta = 1 * inc;
-    } else {
-      inc > 0
-        ? player[field as keyof PlayerDetails]++
-        : player[field as keyof PlayerDetails]--;
-    }
-
-    let newPlayers = players.slice();
-    newPlayers[index] = player;
-
-    localStorage.setItem("gameState", JSON.stringify(newPlayers));
-
-    updatePlayers(newPlayers);
-
-    // Plus/minus: a scoring play shifts the differential for everyone on court.
-    if (scoreDelta !== 0 && onScore) {
-      onScore(team, scoreDelta);
-    }
-
-    // Record the play in the live feed (only for fields that map to a feed
-    // event; tov/fouls have no snapshot column and are skipped).
-    const feedType = FIELD_TO_FEED_TYPE[field];
-    if (feedType && onFeedEvent) {
-      const snapshotPts = player.twos * 2 + player.threes * 3 + player.fts * 1;
-      onFeedEvent({
-        inc,
-        entry: {
-          type: feedType,
-          team,
-          playerName: name,
-          desc: describeFeedEvent(feedType),
-          score: `${score1[1]}-${score2[1]}`,
-          snapshotPts,
-          snapshotAst: player.ast,
-          snapshotOffReb: player.offReb,
-          snapshotDefReb: player.defReb,
-          snapshotBlk: player.blk,
-          snapshotStl: player.stl,
-        },
-      });
-    }
-  };
+  // Taps route through the parent's central stat handler.
+  const updateStats = (field: string) => onStat?.(index, field);
 
   const teamColor = team == 1 ? "team1.500" : "team2.500";
   const liveSeconds =
@@ -378,10 +260,12 @@ const Player = ({
       maxW={compressed ? "340px" : "520px"}
       bg="bg.card"
       border="1px solid"
-      borderColor="border.subtle"
+      borderColor={isSelected ? "accent.500" : "border.subtle"}
+      boxShadow={isSelected ? "0 0 0 2px rgba(31,201,122,0.4)" : "none"}
       borderRadius="card"
       overflow="hidden"
       position="relative"
+      transition="border-color 0.12s, box-shadow 0.12s"
       _before={{
         content: '""',
         position: "absolute",
@@ -1052,6 +936,8 @@ const Home = () => {
     setFeed([]);
     localStorage.setItem("gameFeed", "[]");
     clearClock();
+    setSelected(null);
+    setUndoStack([]);
 
     for (const player of team1) {
       players.push({
@@ -1188,12 +1074,206 @@ const Home = () => {
   }, []);
 
   const [inc, setInc] = useState(1);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [undoStack, setUndoStack] = useState<any[]>([]);
+
+  // Refs mirror latest state so applyStat reads fresh values even on rapid input.
+  const playersRef = useRef(players);
+  playersRef.current = players;
+  const score1Ref = useRef(score1);
+  score1Ref.current = score1;
+  const score2Ref = useRef(score2);
+  score2Ref.current = score2;
+  const incRef = useRef(inc);
+  incRef.current = inc;
+  const feedRef = useRef(feed);
+  feedRef.current = feed;
+  const lockedRef = useRef(false);
+  lockedRef.current = statsLocked;
+
+  const vibrate = (ms: number) => {
+    if (typeof navigator !== "undefined" && (navigator as any).vibrate)
+      (navigator as any).vibrate(ms);
+  };
+
+  // Snapshot current state so the last action can be undone.
+  const pushUndo = () => {
+    setUndoStack((st) => [
+      ...st.slice(-49),
+      {
+        players: JSON.parse(JSON.stringify(playersRef.current)),
+        score1: [...score1Ref.current],
+        score2: [...score2Ref.current],
+        feed: JSON.parse(JSON.stringify(feedRef.current)),
+      },
+    ]);
+  };
+
+  const undo = () => {
+    setUndoStack((st) => {
+      if (st.length === 0) return st;
+      const snap = st[st.length - 1];
+      setPlayers(snap.players);
+      setScore1(snap.score1);
+      setScore2(snap.score2);
+      setFeed(snap.feed);
+      localStorage.setItem("gameState", JSON.stringify(snap.players));
+      localStorage.setItem("gameFeed", JSON.stringify(snap.feed));
+      vibrate(15);
+      return st.slice(0, -1);
+    });
+  };
+
+  // Central stat application — used by both taps and keyboard. Handles the
+  // player stat, score, plus/minus (folded in synchronously), feed, undo, and
+  // haptics. Ignored while stats are locked (clock stopped mid-game).
+  const applyStat = (index: number, field: string) => {
+    const cur = playersRef.current;
+    const p = cur[index];
+    if (!p || lockedRef.current) return;
+    pushUndo();
+    const incVal = incRef.current;
+    const player: any = { ...p };
+    let scoreDelta = 0;
+
+    const bump1 = (a: number, b: number) => {
+      const s = [score1Ref.current[0] + a, score1Ref.current[1] + b];
+      score1Ref.current = s;
+      setScore1(s);
+    };
+    const bump2 = (a: number, b: number) => {
+      const s = [score2Ref.current[0] + a, score2Ref.current[1] + b];
+      score2Ref.current = s;
+      setScore2(s);
+    };
+
+    if (field === "twos") {
+      player.twos += incVal;
+      player.twosAttempted += incVal;
+      scoreDelta = 2 * incVal;
+      player.team === 1 ? bump1(1 * incVal, 2 * incVal) : bump2(1 * incVal, 2 * incVal);
+    } else if (field === "threes") {
+      player.threes += incVal;
+      player.threesAttempted += incVal;
+      scoreDelta = 3 * incVal;
+      player.team === 1 ? bump1(2 * incVal, 3 * incVal) : bump2(2 * incVal, 3 * incVal);
+    } else if (field === "fts") {
+      player.fts += incVal;
+      scoreDelta = 1 * incVal;
+      player.team === 1 ? bump1(0.5 * incVal, 1 * incVal) : bump2(0.5 * incVal, 1 * incVal);
+    } else {
+      player[field] = (Number(player[field]) || 0) + incVal;
+    }
+
+    // Fold plus/minus for on-court players into the same update.
+    const next = cur.map((pl: any, i: number) => {
+      const base = i === index ? player : { ...pl };
+      if (scoreDelta !== 0 && base.active) {
+        base.plusMinus =
+          (Number(base.plusMinus) || 0) +
+          (base.team === player.team ? scoreDelta : -scoreDelta);
+      }
+      return base;
+    });
+    playersRef.current = next;
+    localStorage.setItem("gameState", JSON.stringify(next));
+    setPlayers(next);
+
+    const feedType = FIELD_TO_FEED_TYPE[field];
+    if (feedType) {
+      const snapshotPts = player.twos * 2 + player.threes * 3 + player.fts * 1;
+      handleFeedEvent({
+        inc: incVal,
+        entry: {
+          type: feedType,
+          team: player.team,
+          playerName: player.name,
+          desc: describeFeedEvent(feedType),
+          score: `${score1Ref.current[1]}-${score2Ref.current[1]}`,
+          snapshotPts,
+          snapshotAst: player.ast,
+          snapshotOffReb: player.offReb,
+          snapshotDefReb: player.defReb,
+          snapshotBlk: player.blk,
+          snapshotStl: player.stl,
+        },
+      });
+    }
+    vibrate(8);
+  };
+
+  // Timeout: pause the clock and log a system feed event for the team.
+  const callTimeout = (team: number) => {
+    if (clockRunning) stopClock();
+    handleFeedEvent({
+      inc: 1,
+      entry: {
+        type: "timeout",
+        team,
+        playerName: "",
+        desc: `Timeout — Team ${team}`,
+        score: `${score1Ref.current[1]}-${score2Ref.current[1]}`,
+        snapshotPts: 0,
+        snapshotAst: 0,
+        snapshotOffReb: 0,
+        snapshotDefReb: 0,
+        snapshotBlk: 0,
+        snapshotStl: 0,
+      },
+    });
+    vibrate(20);
+  };
+
+  // ---- Desktop keyboard shortcuts ----
+  // Digits 1-8 select a player; letters apply a stat to the selected player.
+  const KEY_TO_FIELD: Record<string, string> = {
+    q: "twos",
+    w: "twosAttempted",
+    e: "threes",
+    r: "threesAttempted",
+    a: "ast",
+    s: "stl",
+    d: "defReb",
+    o: "offReb",
+    b: "blk",
+    t: "tov",
+    f: "fouls",
+    g: "fts",
+  };
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => {
+      const tag = (ev.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || ev.metaKey || ev.ctrlKey) return;
+      const players = playersRef.current;
+      if (players.length === 0) return;
+      const key = ev.key.toLowerCase();
+
+      if (/^[1-9]$/.test(key)) {
+        const idx = Number(key) - 1;
+        if (idx < players.length) setSelected(idx);
+        return;
+      }
+      if (key === "u") {
+        undo();
+        return;
+      }
+      const field = KEY_TO_FIELD[key];
+      if (field && selected != null && selected < players.length) {
+        ev.preventDefault();
+        applyStat(selected, field);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
 
   const renderCard = (player: PlayerDetails, index: number) => (
     <Box
       key={index}
       flexShrink={0}
       w={{ base: "300px", sm: playoffs ? "320px" : "380px" }}
+      onClick={() => setSelected(index)}
     >
       <Player
         compressed={playoffs}
@@ -1207,6 +1287,8 @@ const Home = () => {
         onToggleMinutes={toggleMinutes}
         onScore={applyPlusMinus}
         locked={statsLocked}
+        onStat={applyStat}
+        isSelected={selected === index}
         setScore1={setScore1}
         setScore2={setScore2}
       />
@@ -1432,6 +1514,10 @@ const Home = () => {
                   setScore2([0, 0]);
                   setFeed([]);
                   clearClock();
+                  setSelected(null);
+                  setUndoStack([]);
+    setSelected(null);
+    setUndoStack([]);
 
                   onClose();
                 }}
@@ -1460,6 +1546,8 @@ const Home = () => {
     setScore2([0, 0]);
     setFeed([]);
     clearClock();
+    setSelected(null);
+    setUndoStack([]);
   };
 
   const ClearGameButton = () => {
@@ -1767,8 +1855,18 @@ const Home = () => {
 
         {/* Controls */}
         <Flex align="center" justify="space-between" gap={3} mt={4} wrap="wrap">
-          <FoulPill team="Team 1" color="team1.500" value={getFouls(1)} />
-          <HStack spacing={2}>
+          <VStack spacing={1} align="center">
+            <FoulPill team="Team 1" color="team1.500" value={getFouls(1)} />
+            <Button
+              size="xs"
+              variant="ghostMuted"
+              fontSize="10px"
+              onClick={() => callTimeout(1)}
+            >
+              Timeout
+            </Button>
+          </VStack>
+          <HStack spacing={2} wrap="wrap" justify="center">
             <Button
               size="sm"
               variant={inc == 1 ? "accent" : undefined}
@@ -1788,6 +1886,15 @@ const Home = () => {
             <Button
               size="sm"
               variant="surface"
+              onClick={undo}
+              isDisabled={undoStack.length === 0}
+              leftIcon={<span style={{ fontSize: "13px" }}>↩</span>}
+            >
+              Undo
+            </Button>
+            <Button
+              size="sm"
+              variant="surface"
               onClick={() => {
                 setPlayoffs(!playoffs);
               }}
@@ -1795,7 +1902,17 @@ const Home = () => {
               {!playoffs ? "Regular" : "Playoffs"}
             </Button>
           </HStack>
-          <FoulPill team="Team 2" color="team2.500" value={getFouls(2)} />
+          <VStack spacing={1} align="center">
+            <FoulPill team="Team 2" color="team2.500" value={getFouls(2)} />
+            <Button
+              size="xs"
+              variant="ghostMuted"
+              fontSize="10px"
+              onClick={() => callTimeout(2)}
+            >
+              Timeout
+            </Button>
+          </VStack>
         </Flex>
       </Box>
 
@@ -1839,6 +1956,16 @@ const Home = () => {
                     ⏸ Clock stopped — stat entry paused. Press Start to resume.
                   </Flex>
                 )}
+                <Text
+                  display={{ base: "none", md: "block" }}
+                  fontSize="11px"
+                  color="text.faint"
+                  mb={3}
+                >
+                  ⌨ Shortcuts — 1–8 select player · Q/W 2PM/2PA · E/R 3PM/3PA · A
+                  ast · O oreb · D dreb · S stl · B blk · T tov · F foul · G ft ·
+                  U undo
+                </Text>
                 <CourtView />
               </>
             )}

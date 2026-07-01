@@ -65,13 +65,14 @@ export function describeFeedEvent(type: FeedEventType): string {
   }
 }
 
-// Clock/system events aren't tied to a player and render as a centered row.
+// Clock/system events (clock start/stop, timeouts) aren't tied to a player and
+// render as a centered row.
 export function isClockEvent(entry: any): boolean {
   const t = entry?.type;
-  if (typeof t === "string" && t.startsWith("clock")) return true;
-  return String(entry?.desc ?? "")
-    .toLowerCase()
-    .startsWith("clock");
+  if (typeof t === "string" && (t.startsWith("clock") || t === "timeout"))
+    return true;
+  const d = String(entry?.desc ?? "").toLowerCase();
+  return d.startsWith("clock") || d.startsWith("timeout");
 }
 
 export interface FeedEntry {
