@@ -115,6 +115,8 @@ interface PlayerDetailsProps {
   // plus/minus
   plusMinus?: number;
   onScore?: Function;
+  // disable stat entry while the game clock is stopped mid-game
+  locked?: boolean;
 }
 
 // set the teams up
@@ -138,22 +140,26 @@ const VALUE_TONE: Record<string, string> = {
 };
 
 // A tappable stat cell. inc mode (Add/Remove) is handled by the parent via onTap.
+// Disabled (e.g. while the game clock is stopped) it greys out and ignores taps.
 const StatCell = ({
   label,
   value,
   tone,
   onTap,
   compact,
+  disabled,
 }: {
   label: string;
   value: ReactNode;
   tone: string;
   onTap: () => void;
   compact?: boolean;
+  disabled?: boolean;
 }) => (
   <Flex
     as="button"
     type="button"
+    disabled={disabled}
     direction="column"
     align="center"
     justify="center"
@@ -163,12 +169,15 @@ const StatCell = ({
     border="1px solid"
     borderColor="border.subtle"
     borderRadius="tile"
-    cursor="pointer"
+    cursor={disabled ? "not-allowed" : "pointer"}
+    opacity={disabled ? 0.4 : 1}
     userSelect="none"
     transition="all 0.1s"
-    _hover={{ bg: "bg.hover", borderColor: "accent.500" }}
-    _active={{ transform: "scale(0.96)" }}
-    onClick={onTap}
+    _hover={disabled ? {} : { bg: "bg.hover", borderColor: "accent.500" }}
+    _active={disabled ? {} : { transform: "scale(0.96)" }}
+    onClick={() => {
+      if (!disabled) onTap();
+    }}
   >
     <Heading
       fontFamily="heading"
@@ -218,6 +227,7 @@ const Player = ({
   onToggleMinutes,
   plusMinus = 0,
   onScore,
+  locked = false,
 }: PlayerDetailsProps) => {
   const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
@@ -502,24 +512,24 @@ const Player = ({
 
       {/* Fouls + FTM (tappable) */}
       <HStack spacing={2} mb={2}>
-        <StatCell label="PF" value={fouls} tone="foul" onTap={() => updateStats("fouls")} compact />
+        <StatCell label="PF" value={fouls} tone="foul" onTap={() => updateStats("fouls")} compact disabled={locked} />
         {compressed ? (
-          <StatCell label="FTM" value={fts} tone="ftm" onTap={() => updateStats("fts")} compact />
+          <StatCell label="FTM" value={fts} tone="ftm" onTap={() => updateStats("fts")} compact disabled={locked} />
         ) : null}
-        <StatCell label="TO" value={tov} tone="to" onTap={() => updateStats("tov")} compact />
+        <StatCell label="TO" value={tov} tone="to" onTap={() => updateStats("tov")} compact disabled={locked} />
       </HStack>
 
       {/* Stat grid */}
       <SimpleGrid columns={compressed ? 3 : 5} spacing={2}>
-        <StatCell label="2PM" value={twos} tone="make" onTap={() => updateStats("twos")} />
-        <StatCell label="2PA" value={twosAttempted} tone="miss" onTap={() => updateStats("twosAttempted")} />
-        <StatCell label="3PM" value={threes} tone="make" onTap={() => updateStats("threes")} />
-        <StatCell label="3PA" value={threesAttempted} tone="miss" onTap={() => updateStats("threesAttempted")} />
-        <StatCell label="OREB" value={offReb} tone="reb" onTap={() => updateStats("offReb")} />
-        <StatCell label="DREB" value={defReb} tone="reb" onTap={() => updateStats("defReb")} />
-        <StatCell label="AST" value={ast} tone="play" onTap={() => updateStats("ast")} />
-        <StatCell label="STL" value={stl} tone="play" onTap={() => updateStats("stl")} />
-        <StatCell label="BLK" value={blk} tone="play" onTap={() => updateStats("blk")} />
+        <StatCell label="2PM" value={twos} tone="make" onTap={() => updateStats("twos")} disabled={locked} />
+        <StatCell label="2PA" value={twosAttempted} tone="miss" onTap={() => updateStats("twosAttempted")} disabled={locked} />
+        <StatCell label="3PM" value={threes} tone="make" onTap={() => updateStats("threes")} disabled={locked} />
+        <StatCell label="3PA" value={threesAttempted} tone="miss" onTap={() => updateStats("threesAttempted")} disabled={locked} />
+        <StatCell label="OREB" value={offReb} tone="reb" onTap={() => updateStats("offReb")} disabled={locked} />
+        <StatCell label="DREB" value={defReb} tone="reb" onTap={() => updateStats("defReb")} disabled={locked} />
+        <StatCell label="AST" value={ast} tone="play" onTap={() => updateStats("ast")} disabled={locked} />
+        <StatCell label="STL" value={stl} tone="play" onTap={() => updateStats("stl")} disabled={locked} />
+        <StatCell label="BLK" value={blk} tone="play" onTap={() => updateStats("blk")} disabled={locked} />
       </SimpleGrid>
     </Box>
   );
@@ -788,6 +798,11 @@ const Home = () => {
   const displaySeconds = countdownTarget != null ? (remaining as number) : elapsed;
   const expired = countdownTarget != null && remaining === 0;
 
+  // Stat entry is locked while the game clock is stopped mid-game (i.e. after it
+  // has run). Before the first Start (or after a reset) it stays unlocked so
+  // setup / clock-free tracking still works.
+  const statsLocked = !clockRunning && clockBase > 0;
+
   // Restore clock (incl. countdown target) on mount — works with or without an
   // active game.
   useEffect(() => {
@@ -996,6 +1011,24 @@ const Home = () => {
     }
   };
 
+  // Quick clock nudge: +Xs adds to the countdown target (more time left) or to
+  // the stopwatch elapsed. Works whether the clock is running or stopped.
+  const addTime = (sec: number) => {
+    if (countdownTarget != null) {
+      setCountdownTarget((t) => {
+        const nt = Math.max(0, (t ?? 0) + sec);
+        localStorage.setItem("clockTarget", String(nt));
+        return nt;
+      });
+    } else {
+      setClockBase((b) => {
+        const nb = Math.max(0, b + sec);
+        localStorage.setItem("clockBase", String(nb));
+        return nb;
+      });
+    }
+  };
+
   const createPlayers = async () => {
     const playersReq = await axios.get(`${apiUrl}/api/getPlayers`);
 
@@ -1173,6 +1206,7 @@ const Home = () => {
         clockRunning={clockRunning}
         onToggleMinutes={toggleMinutes}
         onScore={applyPlusMinus}
+        locked={statsLocked}
         setScore1={setScore1}
         setScore2={setScore2}
       />
@@ -1716,6 +1750,19 @@ const Home = () => {
             Reset
           </Button>
           <SetTimerModal />
+          <HStack spacing={1}>
+            {[3, 5, 10, 30].map((s) => (
+              <Button
+                key={s}
+                size="xs"
+                variant="surface"
+                px={2}
+                onClick={() => addTime(s)}
+              >
+                +{s}s
+              </Button>
+            ))}
+          </HStack>
         </Flex>
 
         {/* Controls */}
@@ -1773,7 +1820,27 @@ const Home = () => {
                 No active game. Tap “Select Teams” to start tracking.
               </Center>
             ) : (
-              <CourtView />
+              <>
+                {statsLocked && (
+                  <Flex
+                    align="center"
+                    justify="center"
+                    gap={2}
+                    mb={4}
+                    py={2}
+                    borderRadius="tile"
+                    bg="rgba(255,200,87,0.12)"
+                    border="1px solid"
+                    borderColor="warn.500"
+                    color="warn.500"
+                    fontSize="sm"
+                    fontWeight={700}
+                  >
+                    ⏸ Clock stopped — stat entry paused. Press Start to resume.
+                  </Flex>
+                )}
+                <CourtView />
+              </>
             )}
           </TabPanel>
           <TabPanel px={0}>
