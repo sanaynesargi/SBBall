@@ -47,6 +47,7 @@ import {
   describeFeedEvent,
   getStatDataFromDesc,
   isClockEvent,
+  formatFeedTime,
   type FeedEntry as FeedEntryData,
 } from "../../utils/gameFeed.ts";
 
@@ -726,6 +727,7 @@ const Home = () => {
         snapshotDefReb: 0,
         snapshotBlk: 0,
         snapshotStl: 0,
+        occurredAt: new Date().toISOString(),
       },
     });
   };
@@ -1239,6 +1241,7 @@ const Home = () => {
           snapshotDefReb: player.defReb,
           snapshotBlk: player.blk,
           snapshotStl: player.stl,
+          occurredAt: new Date().toISOString(),
         },
       });
     }
@@ -1262,6 +1265,7 @@ const Home = () => {
         snapshotDefReb: 0,
         snapshotBlk: 0,
         snapshotStl: 0,
+        occurredAt: new Date().toISOString(),
       },
     });
     vibrate(20);
@@ -2202,6 +2206,7 @@ const Home = () => {
                           stat1Name={d.stat1Name}
                           stat2Num={d.stat2Num}
                           stat2Name={d.stat2Name}
+                          time={formatFeedTime(e)}
                         />
                         {i > 0 && <Divider borderColor="border.subtle" />}
                       </Box>

@@ -87,6 +87,23 @@ export interface FeedEntry {
   snapshotDefReb: number;
   snapshotBlk: number;
   snapshotStl: number;
+  // ISO wall-clock time the play was recorded (added 2026; may be absent on
+  // historical games). Persisted to the "occurredAt" column.
+  occurredAt?: string;
+}
+
+// Format a feed row's wall-clock time for display (e.g. "3:45:12 PM").
+// Accepts the live ISO string or the value SELECT * returns from Postgres.
+export function formatFeedTime(entry: any): string | null {
+  const raw = entry?.occurredAt ?? entry?.occurred_at;
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 export interface FeedDisplay {

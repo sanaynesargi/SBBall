@@ -8,6 +8,7 @@ interface FeedEntryProps {
   stat2Num: number | string | null;
   stat2Name: string | null;
   system?: boolean;
+  time?: string | null;
 }
 
 export const FeedEntry = ({
@@ -18,6 +19,7 @@ export const FeedEntry = ({
   stat1Num,
   stat2Num,
   system,
+  time,
 }: FeedEntryProps) => {
   // System/clock events: centered, no avatar or stats.
   if (system) {
@@ -32,6 +34,11 @@ export const FeedEntry = ({
         >
           {description}
         </Text>
+        {time ? (
+          <Text fontSize="xs" color="text.faint" fontWeight={600}>
+            {time}
+          </Text>
+        ) : null}
       </Flex>
     );
   }
@@ -75,6 +82,14 @@ export const FeedEntry = ({
                 {stat1Num} {stat1Name}
                 {stat2Name ? `, ${stat2Num} ${stat2Name}` : ""}
               </Text>
+            ) : null}
+            {time ? (
+              <>
+                <Text color="text.faint">·</Text>
+                <Text color="text.faint" fontWeight={600}>
+                  {time}
+                </Text>
+              </>
             ) : null}
           </HStack>
         </VStack>

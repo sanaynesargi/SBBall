@@ -184,15 +184,16 @@ export async function POST(req: NextRequest) {
           e.snapshotDefReb ?? 0,
           e.snapshotBlk ?? 0,
           e.snapshotStl ?? 0,
-          gameId
+          gameId,
+          e.occurredAt ?? null // wall-clock time the play was recorded
         );
-        return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11})`;
+        return `($${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, $${b + 7}, $${b + 8}, $${b + 9}, $${b + 10}, $${b + 11}, $${b + 12})`;
       });
 
       await query(
         `INSERT INTO ${feedTable}
            (rel_id, "playerName", "desc", score, "snapshotPts", "snapshotAst",
-            "snapshotOffReb", "snapshotDefReb", "snapshotBlk", "snapshotStl", "gameId")
+            "snapshotOffReb", "snapshotDefReb", "snapshotBlk", "snapshotStl", "gameId", "occurredAt")
          VALUES ${tuples.join(", ")}`,
         params
       );
