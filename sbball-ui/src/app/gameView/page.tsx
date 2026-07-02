@@ -21,6 +21,7 @@ import {
   getStatDataFromDesc,
   isClockEvent,
   formatFeedTime,
+  formatQuarter,
 } from "../../../utils/gameFeed";
 
 function convertDate(dateString: string) {
@@ -209,6 +210,7 @@ const GameView = () => {
                   stat2Num={feedData.stat2Num != null ? feedData.stat2Num : ""}
                   stat2Name={feedData.stat2Name != null ? feedData.stat2Name : ""}
                   time={formatFeedTime(entry)}
+                  quarter={formatQuarter(entry)}
                 />
                 {index < feedList.length - 1 && (
                   <Divider borderColor="border.subtle" />

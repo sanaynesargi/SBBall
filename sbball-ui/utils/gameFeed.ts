@@ -65,14 +65,19 @@ export function describeFeedEvent(type: FeedEventType): string {
   }
 }
 
-// Clock/system events (clock start/stop, timeouts) aren't tied to a player and
-// render as a centered row.
+// Clock/system events (clock start/stop, timeouts, quarter changes) aren't tied
+// to a player and render as a centered row.
 export function isClockEvent(entry: any): boolean {
   const t = entry?.type;
-  if (typeof t === "string" && (t.startsWith("clock") || t === "timeout"))
+  if (
+    typeof t === "string" &&
+    (t.startsWith("clock") || t === "timeout" || t === "quarter")
+  )
     return true;
   const d = String(entry?.desc ?? "").toLowerCase();
-  return d.startsWith("clock") || d.startsWith("timeout");
+  return (
+    d.startsWith("clock") || d.startsWith("timeout") || d.startsWith("quarter")
+  );
 }
 
 export interface FeedEntry {
@@ -90,6 +95,18 @@ export interface FeedEntry {
   // ISO wall-clock time the play was recorded (added 2026; may be absent on
   // historical games). Persisted to the "occurredAt" column.
   occurredAt?: string;
+  // Which quarter/period the play happened in (added 2026). Persisted to the
+  // "quarter" column; null on pre-feature games.
+  quarter?: number;
+}
+
+// Format a feed row's quarter for display (e.g. "Q2", "OT" past regulation).
+// Returns null when the row predates the quarter feature.
+export function formatQuarter(entry: any): string | null {
+  const q = entry?.quarter;
+  if (q == null || isNaN(Number(q))) return null;
+  const n = Number(q);
+  return n > 4 ? `OT${n - 4 > 1 ? n - 4 : ""}` : `Q${n}`;
 }
 
 // Format a feed row's wall-clock time for display (e.g. "3:45:12 PM").

@@ -98,7 +98,9 @@ CREATE TABLE IF NOT EXISTS game_feed (
   "snapshotStl"    INTEGER,
   "gameId"         INTEGER,
   -- Wall-clock instant the play was recorded (NULL for pre-feature games).
-  "occurredAt"     TIMESTAMPTZ
+  "occurredAt"     TIMESTAMPTZ,
+  -- Quarter/period the play happened in (NULL for pre-feature games).
+  quarter          INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS game_feed2 (
@@ -115,12 +117,16 @@ CREATE TABLE IF NOT EXISTS game_feed2 (
   "snapshotStl"    INTEGER,
   "gameId"         INTEGER,
   -- Wall-clock instant the play was recorded (NULL for pre-feature games).
-  "occurredAt"     TIMESTAMPTZ
+  "occurredAt"     TIMESTAMPTZ,
+  -- Quarter/period the play happened in (NULL for pre-feature games).
+  quarter          INTEGER
 );
 
 -- Backfill for existing databases (idempotent).
 ALTER TABLE game_feed  ADD COLUMN IF NOT EXISTS "occurredAt" TIMESTAMPTZ;
 ALTER TABLE game_feed2 ADD COLUMN IF NOT EXISTS "occurredAt" TIMESTAMPTZ;
+ALTER TABLE game_feed  ADD COLUMN IF NOT EXISTS quarter INTEGER;
+ALTER TABLE game_feed2 ADD COLUMN IF NOT EXISTS quarter INTEGER;
 
 -- Helpful indexes for the stat aggregation queries.
 CREATE INDEX IF NOT EXISTS stats_gameid_idx ON stats ("gameId");

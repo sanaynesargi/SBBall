@@ -48,6 +48,7 @@ import {
   getStatDataFromDesc,
   isClockEvent,
   formatFeedTime,
+  formatQuarter,
   type FeedEntry as FeedEntryData,
 } from "../../utils/gameFeed.ts";
 
@@ -671,6 +672,16 @@ const Home = () => {
     });
   };
 
+  // ---- Quarter / period ----
+  // The active quarter. Every feed event is tagged with this, so each play is
+  // pinned to a quarter alongside its global timestamp. Advancing it logs a
+  // "Quarter N started" system event onto the timeline.
+  const [quarter, setQuarter] = useState(1);
+  useEffect(() => {
+    const q = Number(localStorage.getItem("quarter") ?? "1") || 1;
+    setQuarter(q);
+  }, []);
+
   // ---- Game clock (count-up stopwatch OR countdown timer) ----
   const [clockRunning, setClockRunning] = useState(false);
   const [clockBase, setClockBase] = useState(0); // accumulated seconds while paused
@@ -732,6 +743,7 @@ const Home = () => {
         snapshotBlk: 0,
         snapshotStl: 0,
         occurredAt: new Date().toISOString(),
+        quarter: quarterRef.current,
       },
     });
   };
@@ -890,6 +902,10 @@ const Home = () => {
     resetClock();
     setCountdownTarget(null);
     localStorage.removeItem("clockTarget");
+    // A fresh game starts back in Q1.
+    setQuarter(1);
+    quarterRef.current = 1;
+    localStorage.setItem("quarter", "1");
   };
 
   // Configure the clock: seconds > 0 -> countdown; 0 -> count-up stopwatch.
@@ -1139,6 +1155,37 @@ const Home = () => {
   feedRef.current = feed;
   const lockedRef = useRef(false);
   lockedRef.current = statsLocked;
+  const quarterRef = useRef(quarter);
+  quarterRef.current = quarter;
+
+  // Set the active quarter, persist it, and (when it actually changes) drop a
+  // "Quarter N started" system event onto the timeline with a global timestamp.
+  const changeQuarter = (next: number) => {
+    const q = Math.max(1, Math.min(12, Math.round(next)));
+    if (q === quarterRef.current) return;
+    setQuarter(q);
+    quarterRef.current = q;
+    localStorage.setItem("quarter", String(q));
+    const label = q > 4 ? `OT${q - 4 > 1 ? q - 4 : ""}` : `Q${q}`;
+    handleFeedEvent({
+      inc: 1,
+      entry: {
+        type: "quarter",
+        team: 0,
+        playerName: "",
+        desc: `Quarter ${q} started (${label})`,
+        score: `${score1Ref.current[1]}-${score2Ref.current[1]}`,
+        snapshotPts: 0,
+        snapshotAst: 0,
+        snapshotOffReb: 0,
+        snapshotDefReb: 0,
+        snapshotBlk: 0,
+        snapshotStl: 0,
+        occurredAt: new Date().toISOString(),
+        quarter: q,
+      },
+    });
+  };
 
   const vibrate = (ms: number) => {
     if (typeof navigator !== "undefined" && (navigator as any).vibrate)
@@ -1246,6 +1293,7 @@ const Home = () => {
           snapshotBlk: player.blk,
           snapshotStl: player.stl,
           occurredAt: new Date().toISOString(),
+          quarter: quarterRef.current,
         },
       });
     }
@@ -1270,6 +1318,7 @@ const Home = () => {
         snapshotBlk: 0,
         snapshotStl: 0,
         occurredAt: new Date().toISOString(),
+        quarter: quarterRef.current,
       },
     });
     vibrate(20);
@@ -2027,6 +2076,53 @@ const Home = () => {
               </Button>
             ))}
           </HStack>
+          {/* Quarter / period stepper. Advancing logs a boundary event onto
+              the timeline; every play is tagged with the active quarter. */}
+          <HStack
+            spacing={1.5}
+            pl={{ base: 0, md: 2 }}
+            ml={{ base: 0, md: 1 }}
+            borderLeft={{ base: "none", md: "1px solid" }}
+            borderColor={{ md: "border.subtle" }}
+          >
+            <Text
+              fontSize="10px"
+              fontWeight={800}
+              letterSpacing="0.08em"
+              color="text.faint"
+            >
+              PERIOD
+            </Text>
+            <Button
+              size="xs"
+              variant="surface"
+              px={2}
+              onClick={() => changeQuarter(quarter - 1)}
+              isDisabled={quarter <= 1}
+              aria-label="Previous quarter"
+            >
+              ‹
+            </Button>
+            <Box
+              minW="38px"
+              textAlign="center"
+              fontFamily="heading"
+              fontWeight={800}
+              fontSize="sm"
+              color="accent.400"
+            >
+              {quarter > 4 ? `OT${quarter - 4 > 1 ? quarter - 4 : ""}` : `Q${quarter}`}
+            </Box>
+            <Button
+              size="xs"
+              variant="surface"
+              px={2}
+              onClick={() => changeQuarter(quarter + 1)}
+              aria-label="Next quarter"
+            >
+              ›
+            </Button>
+          </HStack>
         </Flex>
 
         {/* Controls */}
@@ -2228,6 +2324,7 @@ const Home = () => {
                           stat2Num={d.stat2Num}
                           stat2Name={d.stat2Name}
                           time={formatFeedTime(e)}
+                          quarter={formatQuarter(e)}
                         />
                         {i > 0 && <Divider borderColor="border.subtle" />}
                       </Box>

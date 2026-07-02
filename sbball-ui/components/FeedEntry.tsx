@@ -9,7 +9,26 @@ interface FeedEntryProps {
   stat2Name: string | null;
   system?: boolean;
   time?: string | null;
+  quarter?: string | null;
 }
+
+const QuarterPill = ({ quarter }: { quarter: string }) => (
+  <Box
+    px={1.5}
+    py={0.5}
+    borderRadius="full"
+    bg="bg.surface"
+    border="1px solid"
+    borderColor="border.subtle"
+    fontSize="10px"
+    fontWeight={800}
+    letterSpacing="0.04em"
+    color="accent.400"
+    flexShrink={0}
+  >
+    {quarter}
+  </Box>
+);
 
 export const FeedEntry = ({
   description,
@@ -20,11 +39,13 @@ export const FeedEntry = ({
   stat2Num,
   system,
   time,
+  quarter,
 }: FeedEntryProps) => {
   // System/clock events: centered, no avatar or stats.
   if (system) {
     return (
       <Flex align="center" justify="center" gap={2.5} py={3} color="text.muted">
+        {quarter ? <QuarterPill quarter={quarter} /> : null}
         <Box w="6px" h="6px" borderRadius="full" bg="accent.400" flexShrink={0} />
         <Text
           fontSize="sm"
@@ -69,6 +90,7 @@ export const FeedEntry = ({
             color="text.muted"
             fontSize={{ base: "xs", md: "sm" }}
           >
+            {quarter ? <QuarterPill quarter={quarter} /> : null}
             <Text color="text.primary" fontWeight={700}>
               {name}
             </Text>
