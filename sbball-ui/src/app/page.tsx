@@ -759,6 +759,11 @@ const Home = () => {
       localStorage.removeItem("clockStartedAt");
       pushClockFeed("clock_stop", "Clock expired");
       flushAllPlayers();
+      // A countdown running out ends the period: advance the quarter (logs a
+      // "Quarter N started" event tagged with the new quarter) and reset the
+      // clock back to the target so the next period is ready to Start.
+      changeQuarter(quarterRef.current + 1);
+      resetClock();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clockTick]);
