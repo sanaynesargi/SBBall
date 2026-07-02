@@ -1272,8 +1272,8 @@ const Home = () => {
   };
 
   // ---- Desktop keyboard shortcuts ----
-  // Digits 1-9 (and 0 for the 10th) select a player; letters apply a stat to
-  // the selected player.
+  // Digits 1-9 (and 0 for the 10th) select an ON-COURT player; letters apply a
+  // stat to the selected player.
   const KEY_TO_FIELD: Record<string, string> = {
     q: "twos",
     w: "twosAttempted",
@@ -1297,9 +1297,13 @@ const Home = () => {
       const key = ev.key.toLowerCase();
 
       if (/^[0-9]$/.test(key)) {
-        // 1-9 select the first nine players; 0 selects the tenth (last) slot.
-        const idx = key === "0" ? 9 : Number(key) - 1;
-        if (idx < players.length) setSelected(idx);
+        // Digits select among ON-COURT players only (benched players aren't
+        // reachable by number). 1-9 pick the first nine on court, 0 the tenth.
+        const onCourt = players
+          .map((p, i) => ({ p, i }))
+          .filter((x) => x.p.active);
+        const slot = key === "0" ? 9 : Number(key) - 1;
+        if (slot < onCourt.length) setSelected(onCourt[slot].i);
         return;
       }
       if (key === "u") {
