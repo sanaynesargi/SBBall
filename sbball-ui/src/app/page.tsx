@@ -1272,7 +1272,8 @@ const Home = () => {
   };
 
   // ---- Desktop keyboard shortcuts ----
-  // Digits 1-8 select a player; letters apply a stat to the selected player.
+  // Digits 1-9 (and 0 for the 10th) select a player; letters apply a stat to
+  // the selected player.
   const KEY_TO_FIELD: Record<string, string> = {
     q: "twos",
     w: "twosAttempted",
@@ -1295,8 +1296,9 @@ const Home = () => {
       if (players.length === 0) return;
       const key = ev.key.toLowerCase();
 
-      if (/^[1-9]$/.test(key)) {
-        const idx = Number(key) - 1;
+      if (/^[0-9]$/.test(key)) {
+        // 1-9 select the first nine players; 0 selects the tenth (last) slot.
+        const idx = key === "0" ? 9 : Number(key) - 1;
         if (idx < players.length) setSelected(idx);
         return;
       }
