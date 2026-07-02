@@ -1426,8 +1426,13 @@ const Home = () => {
   const renderCard = (player: PlayerDetails, index: number) => (
     <Box
       key={index}
-      flexShrink={0}
-      w={{ base: "300px", sm: playoffs ? "320px" : "380px" }}
+      // Mobile: fixed-width cards in a horizontal scroll strip.
+      // Desktop (lg+): flex so up to 5 cards share the row (each ~1/5 width),
+      // wrapping to the next line beyond 5.
+      flex={{ base: "0 0 auto", lg: "1 1 calc(20% - 13px)" }}
+      w={{ base: "300px", sm: playoffs ? "320px" : "380px", lg: "auto" }}
+      maxW={{ lg: "calc(20% - 13px)" }}
+      minW={{ lg: 0 }}
       onClick={() => setSelected(index)}
     >
       <Player
@@ -1481,7 +1486,8 @@ const Home = () => {
               </HStack>
               <Flex
                 gap={3}
-                overflowX="auto"
+                overflowX={{ base: "auto", lg: "visible" }}
+                flexWrap={{ base: "nowrap", lg: "wrap" }}
                 pb={2}
                 sx={{
                   "&::-webkit-scrollbar": { height: "6px" },
@@ -1882,7 +1888,7 @@ const Home = () => {
   };
 
   return (
-    <Layout size={playoffs ? "1400px" : undefined}>
+    <Layout size="1500px">
       {/* Scoreboard */}
       <Box
         bg="bg.card"
