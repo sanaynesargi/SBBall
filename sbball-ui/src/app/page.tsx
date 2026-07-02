@@ -1436,12 +1436,11 @@ const Home = () => {
   const renderCard = (player: PlayerDetails, index: number) => (
     <Box
       key={index}
-      // Mobile: fixed-width cards in a horizontal scroll strip.
-      // Desktop (lg+): flex so up to 5 cards share the row (each ~1/5 width),
-      // wrapping to the next line beyond 5.
-      flex={{ base: "0 0 auto", lg: "1 1 calc(20% - 13px)" }}
+      // Mobile: fixed-width cards in a horizontal scroll strip. Desktop (lg+):
+      // the parent is a 5-column grid, so the card just fills its cell (minW 0
+      // lets it shrink below content instead of overflowing).
+      flex={{ base: "0 0 auto" }}
       w={{ base: "300px", sm: playoffs ? "320px" : "380px", lg: "auto" }}
-      maxW={{ lg: "calc(20% - 13px)" }}
       minW={{ lg: 0 }}
       onClick={() => setSelected(index)}
     >
@@ -1494,10 +1493,16 @@ const Home = () => {
                   {onCourt} on court
                 </Text>
               </HStack>
-              <Flex
+              <Box
+                // Mobile: horizontal scroll strip. Desktop (lg+): a 5-column
+                // CSS grid — repeat(5, minmax(0,1fr)) fits exactly with the gap
+                // and wraps 6+ cards to a new row, so it can never spill into a
+                // page-level horizontal scrollbar (the flexbox basis approach
+                // could over-run by a sub-pixel).
+                display={{ base: "flex", lg: "grid" }}
+                gridTemplateColumns={{ lg: "repeat(5, minmax(0, 1fr))" }}
                 gap={3}
                 overflowX={{ base: "auto", lg: "visible" }}
-                flexWrap={{ base: "nowrap", lg: "wrap" }}
                 pb={2}
                 sx={{
                   "&::-webkit-scrollbar": { height: "6px" },
@@ -1514,7 +1519,7 @@ const Home = () => {
                 ) : (
                   cards.map(({ p, i }) => renderCard(p, i))
                 )}
-              </Flex>
+              </Box>
             </Box>
           );
         })}
