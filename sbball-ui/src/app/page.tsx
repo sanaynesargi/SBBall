@@ -530,7 +530,7 @@ const TeamSelect = ({
               </Text>
             ) : roster.length === 0 ? (
               <Text color="text.faint" py={6} textAlign="center">
-                No players in your roster — add some in the Players tab.
+                No players in your roster. Add some in the Players tab.
               </Text>
             ) : (
               <VStack align="stretch" spacing={2} maxH="60vh" overflowY="auto">
@@ -1257,7 +1257,7 @@ const Home = () => {
         type: "timeout",
         team,
         playerName: "",
-        desc: `Timeout — Team ${team}`,
+        desc: `Timeout for Team ${team}`,
         score: `${score1Ref.current[1]}-${score2Ref.current[1]}`,
         snapshotPts: 0,
         snapshotAst: 0,
@@ -1379,7 +1379,7 @@ const Home = () => {
           <ModalCloseButton />
           <ModalBody>
             <Text color="text.muted" fontSize="sm" mb={4}>
-              Pick who starts on the court — any number, but the same on each
+              Pick who starts on the court. Any number, but the same on each
               team.
             </Text>
             <VStack spacing={5} align="stretch">
@@ -1739,7 +1739,7 @@ const Home = () => {
             <ModalCloseButton />
             <ModalBody>
               <Text color="text.muted">
-                This discards the in-progress game — teams, score, and feed —
+                This discards the in-progress game (teams, score, and feed)
                 without saving it. This can’t be undone.
               </Text>
             </ModalBody>
@@ -2138,7 +2138,7 @@ const Home = () => {
                             `Team ${p.team}: ${p.active}/${p.required} on court`
                         )
                         .join(" · ")}{" "}
-                      — fix the lineup to start the clock.
+                      · Fix the lineup to start the clock.
                     </Text>
                     <Button
                       size="xs"
@@ -2164,7 +2164,7 @@ const Home = () => {
                     fontSize="sm"
                     fontWeight={700}
                   >
-                    ⏸ Clock stopped — stat entry paused. Press Start to resume.
+                    ⏸ Clock stopped. Stat entry paused. Press Start to resume.
                   </Flex>
                 )}
                 <Text
@@ -2173,7 +2173,7 @@ const Home = () => {
                   color="text.faint"
                   mb={3}
                 >
-                  ⌨ Shortcuts — 1–8 select player · Q/W 2PM/2PA · E/R 3PM/3PA · A
+                  ⌨ Shortcuts: 1-9/0 select on-court player · Q/W 2PM/2PA · E/R 3PM/3PA · A
                   ast · O oreb · D dreb · S stl · B blk · T tov · F foul · G ft ·
                   U undo
                 </Text>

@@ -200,7 +200,7 @@ const AdminPage = () => {
                       <Box as="span" color="accent.400">
                         {val[0]}
                       </Box>{" "}
-                      — {val[1]}
+                      · {val[1]}
                     </Text>
                     <IconButton
                       size="sm"

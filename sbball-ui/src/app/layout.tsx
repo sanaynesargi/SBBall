@@ -19,7 +19,7 @@ const display = Archivo({
 });
 
 export const metadata: Metadata = {
-  title: "SBBall — Hoops Stats",
+  title: "SBBall - Hoops Stats",
   description: "Live basketball stat tracking for 2v2 and 4v4 pickup games.",
 };
 
