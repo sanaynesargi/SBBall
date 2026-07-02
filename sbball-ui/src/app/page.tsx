@@ -376,14 +376,18 @@ const Player = ({
           </Text>
         </Box>
         <HStack spacing={1.5}>
-          <VStack spacing={0} bg="bg.surface" px={2} py={1} borderRadius="lg">
-            <Heading fontFamily="heading" fontSize="md" lineHeight={1}>
-              {twos * 1 + threes * 2}
-            </Heading>
-            <Text fontSize="9px" color="text.faint" fontWeight={700}>
-              sPTS
-            </Text>
-          </VStack>
+          {/* sPTS = pickup 1-and-2 scoreboard convention; irrelevant in
+              playoff/4v4 (real 2-and-3 scoring), so it's hidden there. */}
+          {!compressed ? (
+            <VStack spacing={0} bg="bg.surface" px={2} py={1} borderRadius="lg">
+              <Heading fontFamily="heading" fontSize="md" lineHeight={1}>
+                {twos * 1 + threes * 2}
+              </Heading>
+              <Text fontSize="9px" color="text.faint" fontWeight={700}>
+                sPTS
+              </Text>
+            </VStack>
+          ) : null}
           <VStack spacing={0} bg="accent.500" color="accent.fg" px={2} py={1} borderRadius="lg">
             <Heading fontFamily="heading" fontSize="md" lineHeight={1}>
               {twos * 2 + threes * 3 + fts * 1}
@@ -1894,7 +1898,7 @@ const Home = () => {
   };
 
   return (
-    <Layout size="1500px">
+    <Layout size={playoffs ? "1800px" : "1500px"}>
       {/* Scoreboard */}
       <Box
         bg="bg.card"
