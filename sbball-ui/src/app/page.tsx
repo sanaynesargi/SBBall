@@ -799,22 +799,8 @@ const Home = () => {
     const now = Date.now();
     const target = players[index];
     if (!target) return;
-    const max = playoffs ? 4 : 2;
-    if (!target.active) {
-      const onCourt = players.filter(
-        (p) => p.team === target.team && p.active
-      ).length;
-      if (onCourt >= max) {
-        toast({
-          title: "Too many players on the court",
-          description: `Team ${target.team} already has ${max} on the court — bench someone first.`,
-          status: "warning",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-    }
+    // No fixed court size — any number can be on the court, as long as both
+    // teams field the SAME number (enforced when the clock starts).
     // Auto-pause the clock while the lineup is being edited.
     if (clockRunning) stopClock();
     setPlayers((prev) => {
@@ -1107,15 +1093,32 @@ const Home = () => {
   const [undoStack, setUndoStack] = useState<any[]>([]);
   const [startersOpen, setStartersOpen] = useState(false);
 
-  // Court size per team (2v2 -> 2, 4v4 -> 4) and lineup validation.
+  // Default starter count when players are first entered (2v2 -> 2, 4v4 -> 4).
+  // This is only a starting default — the on-court size is not fixed; teams
+  // just have to field the same number of players.
   const courtSize = playoffs ? 4 : 2;
   const teamActive = (t: number) =>
     players.filter((p) => p.team === t && p.active).length;
   const teamCount = (t: number) => players.filter((p) => p.team === t).length;
-  const teamRequired = (t: number) => Math.min(teamCount(t), courtSize);
-  const lineupProblems = ([1, 2] as const)
-    .filter((t) => teamCount(t) > 0 && teamActive(t) !== teamRequired(t))
-    .map((t) => ({ team: t, active: teamActive(t), required: teamRequired(t) }));
+  // Lineup rule: every team with players needs >=1 on the court, and the two
+  // teams must have an EQUAL number on the court (the count itself is free).
+  const lineupProblems = (() => {
+    const teams = ([1, 2] as const).filter((t) => teamCount(t) > 0);
+    if (teams.length === 0) return [] as { team: number; active: number; required: number }[];
+    // A team with players but nobody on the court is always invalid.
+    const empty = teams.filter((t) => teamActive(t) === 0);
+    if (empty.length)
+      return empty.map((t) => ({ team: t, active: 0, required: 1 }));
+    // Both teams present -> counts must match. Flag the shorter team(s) to add
+    // up to the larger lineup (benching the extras also resolves it).
+    if (teams.length === 2 && teamActive(1) !== teamActive(2)) {
+      const target = Math.max(teamActive(1), teamActive(2));
+      return teams
+        .filter((t) => teamActive(t) !== target)
+        .map((t) => ({ team: t, active: teamActive(t), required: target }));
+    }
+    return [] as { team: number; active: number; required: number }[];
+  })();
 
   // Refs mirror latest state so applyStat reads fresh values even on rapid input.
   const playersRef = useRef(players);
@@ -1323,22 +1326,20 @@ const Home = () => {
     const selCount = (t: number) =>
       Array.from(sel).filter((i) => players[i]?.team === t).length;
     const toggle = (i: number) => {
-      const t = players[i].team;
       setSel((prev) => {
         const n = new Set(prev);
-        if (n.has(i)) {
-          n.delete(i);
-          return n;
-        }
-        const cnt = Array.from(prev).filter((x) => players[x]?.team === t).length;
-        if (cnt >= courtSize) return prev;
-        n.add(i);
+        if (n.has(i)) n.delete(i);
+        else n.add(i);
         return n;
       });
     };
-    const valid = ([1, 2] as const).every(
-      (t) => teamCount(t) === 0 || selCount(t) === teamRequired(t)
-    );
+    // Each team with players needs >=1 starter, and both teams must field the
+    // same number (the number itself is up to you).
+    const teamsPresent = ([1, 2] as const).filter((t) => teamCount(t) > 0);
+    const valid =
+      teamsPresent.length > 0 &&
+      teamsPresent.every((t) => selCount(t) > 0) &&
+      teamsPresent.every((t) => selCount(t) === selCount(teamsPresent[0]));
     const confirm = () => {
       setPlayers((prev) => {
         const next = prev.map((p, i) => ({
@@ -1368,12 +1369,13 @@ const Home = () => {
           <ModalCloseButton />
           <ModalBody>
             <Text color="text.muted" fontSize="sm" mb={4}>
-              Pick who starts on the court — {courtSize} per team.
+              Pick who starts on the court — any number, but the same on each
+              team.
             </Text>
             <VStack spacing={5} align="stretch">
               {([1, 2] as const).map((t) => {
                 const color = t === 1 ? "team1.500" : "team2.500";
-                const ok = selCount(t) === teamRequired(t);
+                const ok = valid;
                 return (
                   <Box key={t}>
                     <Flex justify="space-between" align="baseline" mb={2}>
@@ -1385,7 +1387,7 @@ const Home = () => {
                         fontWeight={800}
                         color={ok ? "accent.400" : "warn.500"}
                       >
-                        {selCount(t)} / {teamRequired(t)}
+                        {selCount(t)} on court
                       </Text>
                     </Flex>
                     <Flex gap={2} wrap="wrap">
