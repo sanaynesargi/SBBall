@@ -77,10 +77,12 @@ const PlayerColumn = ({
   name,
   color,
   align,
+  sub,
 }: {
   name: string;
   color: string;
   align: "start" | "end";
+  sub?: string;
 }) => (
   <VStack spacing={2} align={align === "start" ? "flex-start" : "flex-end"} flex="1" minW={0}>
     <Avatar
@@ -98,6 +100,21 @@ const PlayerColumn = ({
     >
       {name || "—"}
     </Heading>
+    {sub ? (
+      <Box
+        px={2}
+        py={0.5}
+        borderRadius="full"
+        bg="bg.surface"
+        border="1px solid"
+        borderColor="border.subtle"
+        fontSize="11px"
+        fontWeight={700}
+        color="text.muted"
+      >
+        {sub}
+      </Box>
+    ) : null}
   </VStack>
 );
 
@@ -181,49 +198,21 @@ const ComparisonRow = ({
   );
 };
 
-const SeriesPill = ({
-  label,
-  hint,
-  active,
-  onClick,
-}: {
-  label: string;
-  hint?: string;
-  active: boolean;
-  onClick: () => void;
-}) => (
-  <Flex
-    px={3}
-    h="32px"
-    align="center"
-    gap={1.5}
-    borderRadius="full"
-    cursor="pointer"
-    fontSize="sm"
-    fontWeight={700}
-    border="1px solid"
-    borderColor={active ? "accent.500" : "border.subtle"}
-    bg={active ? "accent.500" : "bg.surface"}
-    color={active ? "accent.fg" : "text.muted"}
-    _hover={active ? {} : { color: "text.primary", borderColor: "accent.500" }}
-    onClick={onClick}
-  >
-    {label}
-    {hint ? (
-      <Box as="span" fontSize="xs" opacity={0.7}>
-        ({hint})
-      </Box>
-    ) : null}
-  </Flex>
-);
+const seriesLabel = (s: string) => (s === "all" ? "All series" : `Series ${s}`);
 
 const ComparePage = () => {
   const [mode, setMode] = useState(false);
-  const [series, setSeries] = useState<string>("all");
   const [seriesList, setSeriesList] = useState<{ series: number; games: number }[]>([]);
-  const [data, setData] = useState<any[]>([]);
+  // Player averages cached per `${mode}:${series}` so each side can point at a
+  // different series without refetching what we already have.
+  const [cache, setCache] = useState<Record<string, any[]>>({});
   const [aName, setAName] = useState("");
   const [bName, setBName] = useState("");
+  const [aSeries, setASeries] = useState("all");
+  const [bSeries, setBSeries] = useState("all");
+
+  const modeStr = mode ? "4v4" : "2v2";
+  const keyFor = (s: string) => `${modeStr}:${mode ? s : "all"}`;
 
   useEffect(() => {
     if (!mode) {
@@ -239,30 +228,43 @@ const ComparePage = () => {
     fetchSeries();
   }, [mode]);
 
+  // Ensure the series each side needs (plus "all" for the player list) is loaded.
   useEffect(() => {
-    const fetchData = async () => {
-      const seriesQ = mode && series !== "all" ? `&series=${series}` : "";
-      const req = await axios.get(
-        `${apiUrl}/api/getPlayerAverages?mode=${mode ? "4v4" : "2v2"}${seriesQ}`
-      );
-      if (req.data.error) return;
-      setData(req.data.data ?? []);
-    };
-    fetchData();
-  }, [mode, series]);
+    const wanted = new Set([keyFor("all"), keyFor(aSeries), keyFor(bSeries)]);
+    wanted.forEach(async (key) => {
+      if (cache[key]) return;
+      const seriesVal = key.split(":")[1];
+      const seriesQ =
+        mode && seriesVal !== "all" ? `&series=${seriesVal}` : "";
+      try {
+        const req = await axios.get(
+          `${apiUrl}/api/getPlayerAverages?mode=${modeStr}${seriesQ}`
+        );
+        if (!req.data.error)
+          setCache((prev) => ({ ...prev, [key]: req.data.data ?? [] }));
+      } catch {}
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, aSeries, bSeries]);
 
   const switchMode = () => {
-    setSeries("all");
+    setASeries("all");
+    setBSeries("all");
     setMode(!mode);
   };
 
+  // The full roster for the pickers comes from the "all" dataset for this mode.
   const players = useMemo(
-    () => data.map((d) => d.player).sort((x, y) => x.localeCompare(y)),
-    [data]
+    () =>
+      (cache[keyFor("all")] ?? [])
+        .map((d: any) => d.player)
+        .sort((x: string, y: string) => x.localeCompare(y)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [cache, modeStr]
   );
 
-  const a = data.find((d) => d.player === aName);
-  const b = data.find((d) => d.player === bName);
+  const a = (cache[keyFor(aSeries)] ?? []).find((d: any) => d.player === aName);
+  const b = (cache[keyFor(bSeries)] ?? []).find((d: any) => d.player === bName);
   const ready = a && b;
 
   return (
@@ -279,60 +281,75 @@ const ComparePage = () => {
             <Heading fontSize={{ base: "2xl", md: "3xl" }}>Compare</Heading>
             <Text color="text.muted" fontSize="sm" mt={1}>
               Head-to-head {mode ? "playoff" : "regular season"} averages
-              {mode && series !== "all" ? ` · Series ${series}` : ""}
+              {mode ? " · pick a series per player" : ""}
             </Text>
           </Box>
           <ModeToggle mode={mode} onToggle={switchMode} />
         </Flex>
 
-        {mode && seriesList.length > 0 && (
-          <Flex align="center" gap={2} mb={5} wrap="wrap">
-            <Text fontSize="sm" fontWeight={800} color="text.muted" mr={1}>
-              By Series
-            </Text>
-            <SeriesPill
-              label="All"
-              active={series === "all"}
-              onClick={() => setSeries("all")}
-            />
-            {seriesList.map((s) => (
-              <SeriesPill
-                key={s.series}
-                label={`Series ${s.series}`}
-                hint={`${s.games}`}
-                active={series === String(s.series)}
-                onClick={() => setSeries(String(s.series))}
-              />
-            ))}
-          </Flex>
-        )}
-
-        {/* Pickers */}
-        <Flex gap={3} mb={6}>
-          <Select
-            {...selectStyles}
-            placeholder="Player A"
-            value={aName}
-            onChange={(e) => setAName(e.target.value)}
-          >
-            {players.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </Select>
-          <Select
-            {...selectStyles}
-            placeholder="Player B"
-            value={bName}
-            onChange={(e) => setBName(e.target.value)}
-          >
-            {players.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </Select>
+        {/* Pickers — each side picks a player and (in playoffs) a series, so you
+            can compare performances across different series. */}
+        <Flex gap={3} mb={6} align="flex-start">
+          <VStack flex="1" minW={0} spacing={2} align="stretch">
+            <Select
+              {...selectStyles}
+              placeholder="Player A"
+              value={aName}
+              onChange={(e) => setAName(e.target.value)}
+            >
+              {players.map((p: string) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </Select>
+            {mode && (
+              <Select
+                {...selectStyles}
+                size="sm"
+                borderRadius="md"
+                value={aSeries}
+                onChange={(e) => setASeries(e.target.value)}
+              >
+                <option value="all">All series</option>
+                {seriesList.map((s) => (
+                  <option key={s.series} value={String(s.series)}>
+                    Series {s.series} ({s.games})
+                  </option>
+                ))}
+              </Select>
+            )}
+          </VStack>
+          <VStack flex="1" minW={0} spacing={2} align="stretch">
+            <Select
+              {...selectStyles}
+              placeholder="Player B"
+              value={bName}
+              onChange={(e) => setBName(e.target.value)}
+            >
+              {players.map((p: string) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </Select>
+            {mode && (
+              <Select
+                {...selectStyles}
+                size="sm"
+                borderRadius="md"
+                value={bSeries}
+                onChange={(e) => setBSeries(e.target.value)}
+              >
+                <option value="all">All series</option>
+                {seriesList.map((s) => (
+                  <option key={s.series} value={String(s.series)}>
+                    Series {s.series} ({s.games})
+                  </option>
+                ))}
+              </Select>
+            )}
+          </VStack>
         </Flex>
 
         {/* Comparison */}
@@ -346,7 +363,12 @@ const ComparePage = () => {
           {ready ? (
             <>
               <Flex align="flex-start" justify="space-between" mb={7} gap={4}>
-                <PlayerColumn name={a.player} color="team1.500" align="start" />
+                <PlayerColumn
+                  name={a.player}
+                  color="team1.500"
+                  align="start"
+                  sub={mode ? seriesLabel(aSeries) : undefined}
+                />
                 <Flex
                   align="center"
                   justify="center"
@@ -365,7 +387,12 @@ const ComparePage = () => {
                 >
                   VS
                 </Flex>
-                <PlayerColumn name={b.player} color="team2.500" align="end" />
+                <PlayerColumn
+                  name={b.player}
+                  color="team2.500"
+                  align="end"
+                  sub={mode ? seriesLabel(bSeries) : undefined}
+                />
               </Flex>
 
               <VStack spacing={5} align="stretch">

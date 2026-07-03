@@ -21,6 +21,12 @@ interface Perf {
   stl: number;
   blk: number;
   fg: number | null;
+  // Shot splits: 2s + 3s makes/attempts. (aggregateStatColumns names these
+  // tpfgM/tpfgA = 2P, ttpfgM/ttpfgA = 3P; for a single game AVG == the value.)
+  tpfgM?: number;
+  tpfgA?: number;
+  ttpfgM?: number;
+  ttpfgA?: number;
   min?: number | null;
   pm?: number | null;
   rating: number;
@@ -48,6 +54,10 @@ export const BoxScoreTable = ({
   players,
 }: BoxScoreTableProps) => {
   const sorted = [...players].sort((a, b) => b.pts - a.pts);
+  const fgm = (p: Perf) => Math.round((p.tpfgM ?? 0) + (p.ttpfgM ?? 0));
+  const fga = (p: Perf) => Math.round((p.tpfgA ?? 0) + (p.ttpfgA ?? 0));
+  const tpm = (p: Perf) => Math.round(p.ttpfgM ?? 0);
+  const tpa = (p: Perf) => Math.round(p.ttpfgA ?? 0);
   const totals = sorted.reduce(
     (t, p) => ({
       min: t.min + (p.min ?? 0),
@@ -56,8 +66,12 @@ export const BoxScoreTable = ({
       ast: t.ast + p.ast,
       stl: t.stl + p.stl,
       blk: t.blk + p.blk,
+      fgm: t.fgm + fgm(p),
+      fga: t.fga + fga(p),
+      tpm: t.tpm + tpm(p),
+      tpa: t.tpa + tpa(p),
     }),
-    { min: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0 }
+    { min: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, fgm: 0, fga: 0, tpm: 0, tpa: 0 }
   );
 
   const headSx = {
@@ -99,7 +113,7 @@ export const BoxScoreTable = ({
               <Th {...headSx} textAlign="left">
                 Player
               </Th>
-              {["MIN", "+/-", "PTS", "REB", "AST", "STL", "BLK", "FG%", "GMSC"].map(
+              {["MIN", "+/-", "PTS", "REB", "AST", "STL", "BLK", "FG", "3P", "FG%", "GMSC"].map(
                 (h) => (
                   <Th key={h} {...headSx} isNumeric>
                     {h}
@@ -134,6 +148,12 @@ export const BoxScoreTable = ({
                 </Td>
                 <Td {...cellSx} isNumeric color="text.muted">
                   {num(p.blk)}
+                </Td>
+                <Td {...cellSx} isNumeric color="text.muted">
+                  {fgm(p)}-{fga(p)}
+                </Td>
+                <Td {...cellSx} isNumeric color="text.muted">
+                  {tpm(p)}-{tpa(p)}
                 </Td>
                 <Td {...cellSx} isNumeric color="text.muted">
                   {p.fg == null ? "—" : (p.fg * 100).toFixed(1) + "%"}
@@ -171,7 +191,13 @@ export const BoxScoreTable = ({
                 {num(totals.blk)}
               </Td>
               <Td {...cellSx} isNumeric color="text.faint">
-                —
+                {totals.fgm}-{totals.fga}
+              </Td>
+              <Td {...cellSx} isNumeric color="text.faint">
+                {totals.tpm}-{totals.tpa}
+              </Td>
+              <Td {...cellSx} isNumeric color="text.faint">
+                {totals.fga ? ((totals.fgm / totals.fga) * 100).toFixed(1) + "%" : "—"}
               </Td>
               <Td {...cellSx} isNumeric color="text.faint">
                 —
