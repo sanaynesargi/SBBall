@@ -10,8 +10,10 @@
 //        + STL + 0.7·AST + 0.7·BLK
 //        − 0.4·PF − TOV
 //
-// NOTE: free-throw *attempts* aren't tracked (only makes, and only in 4v4), so
-// the standard −0.4·(FTA−FTM) missed-FT penalty is omitted. Mode-agnostic.
+// NOTE: free throws are disregarded entirely in our version — FT makes are not
+// added to PTS and (since attempts aren't tracked) the −0.4·(FTA−FTM) missed-FT
+// penalty is omitted. Game Score here is built purely from 2s/3s + the box
+// score. Mode-agnostic.
 
 export interface GameStatLine {
   twos: number;
@@ -31,8 +33,8 @@ export interface GameStatLine {
 const n = (v: number | undefined | null) => Number(v) || 0;
 
 export function calculateGameScore(s: GameStatLine): number {
-  const fts = n(s.fts);
-  const pts = n(s.twos) * 2 + n(s.threes) * 3 + fts;
+  // Free throws are intentionally excluded from Game Score in our version.
+  const pts = n(s.twos) * 2 + n(s.threes) * 3;
   const fgm = n(s.twos) + n(s.threes);
   const fga = n(s.twosAttempted) + n(s.threesAttempted);
 

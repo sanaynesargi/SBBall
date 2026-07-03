@@ -22,8 +22,8 @@ const sql = neon(url);
 
 const num = (v) => Number(v) || 0;
 function gameScore(s) {
-  const fts = num(s.fts);
-  const pts = num(s.twos) * 2 + num(s.threes) * 3 + fts;
+  // Free throws are intentionally excluded from Game Score in our version.
+  const pts = num(s.twos) * 2 + num(s.threes) * 3;
   const fgm = num(s.twos) + num(s.threes);
   const fga = num(s.twosAttempted) + num(s.threesAttempted);
   const gs =
