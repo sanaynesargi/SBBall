@@ -102,6 +102,7 @@ export const BoxScoreDisplay = ({
                         min={perf.min}
                         pm={perf.pm}
                         rtg={perf.rating}
+                        perf={perf}
                       />
                     );
                   })}

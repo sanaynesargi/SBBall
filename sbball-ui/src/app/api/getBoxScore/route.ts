@@ -31,7 +31,10 @@ export async function GET(req: NextRequest) {
         const team1Lst: string[] = game.team1.split(";");
 
         const performances = await query<any>(
-          `SELECT "playerName", ${aggregateStatColumns(mode)}, rating
+          `SELECT "playerName", ${aggregateStatColumns(mode)}, rating,
+             AVG("offReb")::float8 AS orb,
+             AVG("defReb")::float8 AS drb,
+             AVG(fouls)::float8 AS pf
            FROM ${table}
            WHERE "gameId" = $1
            GROUP BY "playerName", rating`,

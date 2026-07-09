@@ -12,6 +12,7 @@ import {
   TableContainer,
 } from "@chakra-ui/react";
 import { gameScoreColor } from "../utils/rating";
+import { GameScoreBreakdown } from "./GameScoreBreakdown";
 
 interface Perf {
   playerName: string;
@@ -159,7 +160,7 @@ export const BoxScoreTable = ({
                   {p.fg == null ? "—" : (p.fg * 100).toFixed(1) + "%"}
                 </Td>
                 <Td {...cellSx} isNumeric fontWeight={800} color={gameScoreColor(p.rating)}>
-                  {p.rating.toFixed(1)}
+                  <GameScoreBreakdown perf={p}>{p.rating.toFixed(1)}</GameScoreBreakdown>
                 </Td>
               </Tr>
             ))}

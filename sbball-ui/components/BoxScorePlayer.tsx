@@ -1,6 +1,7 @@
 import { Box, VStack, SimpleGrid, HStack, Text } from "@chakra-ui/react";
 import { RealStatShort } from "./RealStatShort";
 import { gameScoreColor } from "../utils/rating";
+import { GameScoreBreakdown } from "./GameScoreBreakdown";
 
 interface BoxScorePlayerProps {
   name: string;
@@ -17,6 +18,8 @@ interface BoxScorePlayerProps {
   min?: number | null;
   pm?: number | null;
   rtg: number;
+  // Full performance row, used to render the Game Score breakdown on tap.
+  perf?: any;
 }
 
 export const BoxScorePlayer = ({
@@ -34,6 +37,7 @@ export const BoxScorePlayer = ({
   min,
   pm,
   rtg,
+  perf,
 }: BoxScorePlayerProps) => {
   return (
     <VStack
@@ -56,17 +60,26 @@ export const BoxScorePlayer = ({
         >
           {name}
         </Text>
-        <Text
-          fontFamily="heading"
-          fontWeight={900}
-          color={gameScoreColor(rtg)}
-          fontSize={{ base: "sm", md: "md" }}
-        >
-          {rtg.toFixed(1)}
-          <Box as="span" fontSize="2xs" color="text.faint" ml={1} fontWeight={700}>
-            GMSC
-          </Box>
-        </Text>
+        {(() => {
+          const gmscText = (
+            <Text
+              fontFamily="heading"
+              fontWeight={900}
+              color={gameScoreColor(rtg)}
+              fontSize={{ base: "sm", md: "md" }}
+            >
+              {rtg.toFixed(1)}
+              <Box as="span" fontSize="2xs" color="text.faint" ml={1} fontWeight={700}>
+                GMSC
+              </Box>
+            </Text>
+          );
+          return perf ? (
+            <GameScoreBreakdown perf={perf}>{gmscText}</GameScoreBreakdown>
+          ) : (
+            gmscText
+          );
+        })()}
       </HStack>
       <SimpleGrid columns={{ base: 4, md: 5 }} spacing={2}>
         <RealStatShort
