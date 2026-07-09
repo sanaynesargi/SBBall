@@ -677,6 +677,9 @@ const Home = () => {
   // pinned to a quarter alongside its global timestamp. Advancing it logs a
   // "Quarter N started" system event onto the timeline.
   const [quarter, setQuarter] = useState(1);
+  // Set true when a countdown hits 0:00 — drives the "advance the quarter"
+  // reminder. Cleared once the user advances the period (or resets the clock).
+  const [periodEndPending, setPeriodEndPending] = useState(false);
   useEffect(() => {
     const q = Number(localStorage.getItem("quarter") ?? "1") || 1;
     setQuarter(q);
@@ -759,11 +762,16 @@ const Home = () => {
       localStorage.removeItem("clockStartedAt");
       pushClockFeed("clock_stop", "Clock expired");
       flushAllPlayers();
-      // A countdown running out ends the period: advance the quarter (logs a
-      // "Quarter N started" event tagged with the new quarter) and reset the
-      // clock back to the target so the next period is ready to Start.
-      changeQuarter(quarterRef.current + 1);
-      resetClock();
+      // The period is over, but advancing the quarter is manual now — just
+      // raise a reminder (banner + toast) for the scorekeeper.
+      setPeriodEndPending(true);
+      toast({
+        title: "Clock hit 0:00",
+        description: `Period over — advance to Q${quarterRef.current + 1} when you're ready.`,
+        status: "info",
+        duration: 6000,
+        isClosable: true,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clockTick]);
@@ -911,6 +919,7 @@ const Home = () => {
     setQuarter(1);
     quarterRef.current = 1;
     localStorage.setItem("quarter", "1");
+    setPeriodEndPending(false);
   };
 
   // Configure the clock: seconds > 0 -> countdown; 0 -> count-up stopwatch.
@@ -1167,6 +1176,8 @@ const Home = () => {
   // "Quarter N started" system event onto the timeline with a global timestamp.
   const changeQuarter = (next: number) => {
     const q = Math.max(1, Math.min(12, Math.round(next)));
+    // Advancing the period resolves any pending "clock hit 0" reminder.
+    setPeriodEndPending(false);
     if (q === quarterRef.current) return;
     setQuarter(q);
     quarterRef.current = q;
@@ -2224,6 +2235,45 @@ const Home = () => {
               </Center>
             ) : (
               <>
+                {periodEndPending && (
+                  <Flex
+                    align="center"
+                    justify="center"
+                    gap={3}
+                    mb={4}
+                    py={2.5}
+                    px={3}
+                    borderRadius="tile"
+                    bg="rgba(255,200,87,0.14)"
+                    border="1px solid"
+                    borderColor="warn.500"
+                    color="warn.500"
+                    fontSize="sm"
+                    fontWeight={800}
+                    wrap="wrap"
+                  >
+                    <Text>
+                      ⏱ Clock hit 0:00 — end of {quarter > 4 ? `OT${quarter - 4 > 1 ? quarter - 4 : ""}` : `Q${quarter}`}.
+                    </Text>
+                    <Button
+                      size="xs"
+                      variant="accent"
+                      onClick={() => {
+                        changeQuarter(quarterRef.current + 1);
+                        resetClock();
+                      }}
+                    >
+                      Start {quarter + 1 > 4 ? `OT${quarter + 1 - 4 > 1 ? quarter + 1 - 4 : ""}` : `Q${quarter + 1}`}
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="ghostMuted"
+                      onClick={() => setPeriodEndPending(false)}
+                    >
+                      Dismiss
+                    </Button>
+                  </Flex>
+                )}
                 {lineupProblems.length > 0 && (
                   <Flex
                     align="center"

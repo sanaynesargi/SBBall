@@ -100,6 +100,38 @@ export interface FeedEntry {
   quarter?: number;
 }
 
+// Post-match feed cleanup. The stored order (rel_id) is roughly the tap order,
+// which can be slightly off from real play order. Rather than globally reshuffle
+// a mostly-correct feed, we walk it in small windows (default 5) and stably
+// re-sort each window by its wall-clock timestamp when available. This corrects
+// local out-of-order taps without disturbing the overall flow, and leaves rows
+// without timestamps (older games) exactly where they were.
+//
+// `feed` is expected newest-first (as gameFeed returns, ORDER BY rel_id DESC),
+// so within each window we sort by timestamp DESC to match.
+export function orderFeedInGroups(feed: any[], size = 5): any[] {
+  if (!Array.isArray(feed) || feed.length <= 1) return feed ?? [];
+  const time = (e: any) => {
+    const raw = e?.occurredAt ?? e?.occurred_at;
+    if (!raw) return null;
+    const t = new Date(raw).getTime();
+    return isNaN(t) ? null : t;
+  };
+  const out: any[] = [];
+  for (let i = 0; i < feed.length; i += size) {
+    const group = feed.slice(i, i + size);
+    // Stable sort: rows missing a timestamp compare equal and keep their spot.
+    group.sort((a, b) => {
+      const ta = time(a);
+      const tb = time(b);
+      if (ta == null || tb == null) return 0;
+      return tb - ta;
+    });
+    out.push(...group);
+  }
+  return out;
+}
+
 // Format a feed row's quarter for display (e.g. "Q2", "OT" past regulation).
 // Returns null when the row predates the quarter feature.
 export function formatQuarter(entry: any): string | null {

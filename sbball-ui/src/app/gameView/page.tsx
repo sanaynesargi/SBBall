@@ -22,6 +22,7 @@ import {
   isClockEvent,
   formatFeedTime,
   formatQuarter,
+  orderFeedInGroups,
 } from "../../../utils/gameFeed";
 
 function convertDate(dateString: string) {
@@ -196,7 +197,7 @@ const GameView = () => {
           Play-by-Play
         </Heading>
         <VStack w="100%" spacing={0} align="stretch">
-          {feedList.map((entry: any, index: number) => {
+          {orderFeedInGroups(feedList).map((entry: any, index: number) => {
             const feedData = getStatDataFromDesc(entry);
 
             return (
