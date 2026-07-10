@@ -704,10 +704,12 @@ const Home = () => {
   const displaySeconds = countdownTarget != null ? (remaining as number) : elapsed;
   const expired = countdownTarget != null && remaining === 0;
 
-  // Stat entry is locked while the game clock is stopped mid-game (i.e. after it
-  // has run). Before the first Start (or after a reset) it stays unlocked so
-  // setup / clock-free tracking still works.
-  const statsLocked = !clockRunning && clockBase > 0;
+  // The clock has run and is currently paused mid-game. Purely informational
+  // now — stats can be entered regardless of clock state.
+  const clockStopped = !clockRunning && clockBase > 0;
+  // Stats are never locked: you can add stats whether the clock is running or
+  // stopped. (Kept as a constant so the plumbing below stays untouched.)
+  const statsLocked = false;
 
   // Restore clock (incl. countdown target) on mount — works with or without an
   // active game.
@@ -2309,7 +2311,7 @@ const Home = () => {
                     </Button>
                   </Flex>
                 )}
-                {statsLocked && (
+                {clockStopped && !periodEndPending && (
                   <Flex
                     align="center"
                     justify="center"
@@ -2317,14 +2319,14 @@ const Home = () => {
                     mb={4}
                     py={2}
                     borderRadius="tile"
-                    bg="rgba(255,200,87,0.12)"
+                    bg="bg.surface"
                     border="1px solid"
-                    borderColor="warn.500"
-                    color="warn.500"
+                    borderColor="border.subtle"
+                    color="text.muted"
                     fontSize="sm"
                     fontWeight={700}
                   >
-                    ⏸ Clock stopped. Stat entry paused. Press Start to resume.
+                    ⏸ Clock stopped — stats can still be added. Press Start to resume the clock.
                   </Flex>
                 )}
                 <Text
