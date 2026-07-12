@@ -22,6 +22,7 @@ import axios from "axios";
 import { apiUrl } from "../../../utils/apiUrl.tsx";
 import { BoxScoreEntry } from "../../../components/BoxScoreEntry.tsx";
 import { GameLogEntry } from "../../../components/GameLogEntry.tsx";
+import { GameLogTable } from "../../../components/GameLogTable.tsx";
 import { Player } from "../../../components/Player.tsx";
 import { PlayerCreateModal } from "../../../components/PlayerCreateModal.tsx";
 import { PlayerDetails } from "../../../types/PlayerDetails.ts";
@@ -177,7 +178,7 @@ const AddPlayers = () => {
 
           {/* Game Log */}
           <TabPanel px={0}>
-            <VStack spacing={5} align="stretch" maxW="640px" mx="auto">
+            <VStack spacing={5} align="stretch">
               {players.length == 0 ? null : (
                 <Stack direction={{ base: "column", sm: "row" }} spacing={3}>
                   <Select
@@ -203,7 +204,39 @@ const AddPlayers = () => {
                   </Select>
                 </Stack>
               )}
-              <VStack w="100%" spacing={3} align="stretch">
+
+              {selectedMode && selectedPlayer && gameLog.length === 0 ? (
+                <Box
+                  bg="bg.card"
+                  border="1px solid"
+                  borderColor="border.subtle"
+                  borderRadius="card"
+                  py={12}
+                  textAlign="center"
+                >
+                  <Text color="text.muted">
+                    No {selectedMode === "4v4" ? "playoff" : "regular season"} games
+                    for {selectedPlayer} yet.
+                  </Text>
+                </Box>
+              ) : null}
+
+              {/* Desktop: full sortable table with every stat visible per game */}
+              {fullGameLog.length > 0 && (
+                <Box display={{ base: "none", md: "block" }}>
+                  <GameLogTable data={fullGameLog} name={selectedPlayer} />
+                </Box>
+              )}
+
+              {/* Mobile: compact tap-to-expand cards */}
+              <VStack
+                display={{ base: "flex", md: "none" }}
+                w="100%"
+                maxW="640px"
+                mx="auto"
+                spacing={3}
+                align="stretch"
+              >
                 {gameLog.map((entry: any, index: number) => {
                   const keys: any = Object.keys(entry);
                   const values: any = Object.values(entry);
