@@ -778,6 +778,32 @@ const Home = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clockTick]);
 
+  // Warn once when a player's on-court time passes 48:00 (regulation). Added
+  // time beyond this is what inflates minutes past the per-game max, so the
+  // scorekeeper gets a heads-up rather than silently overrunning.
+  useEffect(() => {
+    if (!clockRunning || mins48Warned.current) return;
+    const now = Date.now();
+    const maxSec = players.reduce((m, p) => {
+      const sec =
+        (p.secondsPlayed || 0) +
+        (p.segStart ? Math.floor((now - p.segStart) / 1000) : 0);
+      return Math.max(m, sec);
+    }, 0);
+    if (maxSec >= 48 * 60) {
+      mins48Warned.current = true;
+      toast({
+        title: "Past 48:00 of game time",
+        description:
+          "A player has reached 48 minutes — further play will exceed the per-game max.",
+        status: "warning",
+        duration: 8000,
+        isClosable: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clockTick]);
+
   // ---- Per-player minutes (accrue only while game clock runs AND active) ----
   const flushAllPlayers = () => {
     const now = Date.now();
@@ -836,6 +862,30 @@ const Home = () => {
     // teams field the SAME number (enforced when the clock starts).
     // Auto-pause the clock while the lineup is being edited.
     if (clockRunning) stopClock();
+    // Log the substitution to the feed so on-court time is reconstructable
+    // later (makes minutes precisely correctable). `target.active` is the state
+    // BEFORE this toggle, so active -> going to the bench.
+    const goingOff = target.active;
+    handleFeedEvent({
+      inc: 1,
+      entry: {
+        type: "substitution",
+        team: target.team,
+        playerName: target.name,
+        desc: `Sub · ${target.name} ${
+          goingOff ? "to the bench" : "checked in"
+        }`,
+        score: `${score1Ref.current[1]}-${score2Ref.current[1]}`,
+        snapshotPts: 0,
+        snapshotAst: 0,
+        snapshotOffReb: 0,
+        snapshotDefReb: 0,
+        snapshotBlk: 0,
+        snapshotStl: 0,
+        occurredAt: new Date().toISOString(),
+        quarter: quarterRef.current,
+      },
+    });
     setPlayers((prev) => {
       const next = prev.map((p, i) => {
         if (i !== index) return p;
@@ -915,6 +965,7 @@ const Home = () => {
   // Full reset incl. countdown target (used on new/clear/end game).
   const clearClock = () => {
     resetClock();
+    mins48Warned.current = false;
     setCountdownTarget(null);
     localStorage.removeItem("clockTarget");
     // A fresh game starts back in Q1.
@@ -1173,6 +1224,9 @@ const Home = () => {
   lockedRef.current = statsLocked;
   const quarterRef = useRef(quarter);
   quarterRef.current = quarter;
+  // Fires once per game when someone's on-court time crosses 48:00 (regulation),
+  // so the scorekeeper knows any further play is overage. Reset by clearClock.
+  const mins48Warned = useRef(false);
 
   // Set the active quarter, persist it, and (when it actually changes) drop a
   // "Quarter N started" system event onto the timeline with a global timestamp.

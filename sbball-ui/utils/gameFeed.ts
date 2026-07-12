@@ -18,7 +18,8 @@ export type FeedEventType =
   | "stl"
   | "blk"
   | "clock_start"
-  | "clock_stop";
+  | "clock_stop"
+  | "substitution";
 
 // updateStats() field -> feed event type. Fields not listed here (tov, fouls,
 // twosAttempted handled below) are simply not recorded in the feed because the
@@ -62,6 +63,8 @@ export function describeFeedEvent(type: FeedEventType): string {
       return "Clock started";
     case "clock_stop":
       return "Clock stopped";
+    case "substitution":
+      return "Substitution";
   }
 }
 
@@ -71,12 +74,20 @@ export function isClockEvent(entry: any): boolean {
   const t = entry?.type;
   if (
     typeof t === "string" &&
-    (t.startsWith("clock") || t === "timeout" || t === "quarter")
+    (t.startsWith("clock") ||
+      t === "timeout" ||
+      t === "quarter" ||
+      t === "substitution")
   )
     return true;
+  // Persisted rows lose their `type` (no such column), so also match on the
+  // desc prefix. "Sub · <name> ..." for substitutions.
   const d = String(entry?.desc ?? "").toLowerCase();
   return (
-    d.startsWith("clock") || d.startsWith("timeout") || d.startsWith("quarter")
+    d.startsWith("clock") ||
+    d.startsWith("timeout") ||
+    d.startsWith("quarter") ||
+    d.startsWith("sub")
   );
 }
 
