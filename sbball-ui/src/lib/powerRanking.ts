@@ -38,6 +38,8 @@ export interface PowerRankingRow {
   winZ: number;
   wins: number;
   games: number;
+  /** Per-game GMSC in chronological order (oldest → newest) — for the game-by-game view. */
+  gmscByGame: number[];
 }
 
 // ---- Tunable constants (documented in the header above) -----------------
@@ -52,8 +54,13 @@ export const PROD_SHRINK_GAMES = 3;
 export const WIN_PRIOR_WINS = 1.5;
 export const WIN_PRIOR_LOSSES = 1.5;
 
-/** Blend: how much "how you played" vs "did you win". 0.5 = MVP-style even. */
-export const PRODUCTION_WEIGHT = 0.5;
+/**
+ * Blend: how much "how you played" vs "did you win". Weighted toward
+ * production — wins are a noisy signal in a 3–7 game series (a great game in a
+ * loss shouldn't tank you), so win rate is intentionally the lighter term.
+ * 0.7 = 70% production / 30% wins.
+ */
+export const PRODUCTION_WEIGHT = 0.7;
 
 // ---- Pure helpers -------------------------------------------------------
 
@@ -148,6 +155,7 @@ export function computePowerRankings(
     winZ: Math.round(winZ[i] * 100) / 100,
     wins: l.wins,
     games: l.games,
+    gmscByGame: l.gmscByGame.map((g) => Math.round(g * 10) / 10),
   }));
 
   rows.sort((a, b) => b.power - a.power);
