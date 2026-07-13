@@ -641,8 +641,79 @@ const AdvancedTable = ({ data }: { data: any[] }) => {
   );
 };
 
+// Power ranking leaderboard. Blends a recency-weighted, small-sample-shrunk
+// Game Score with a shrunk win rate (both z-scored), from /api/getPowerRankings.
+// See src/lib/powerRanking.ts for the formulas.
+const PowerTable = ({ data }: { data: any[] }) => {
+  const [sortBy, setSortBy] = useState<string>("power");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const handle = (c: string) => {
+    if (sortBy === c) setOrder((o) => (o === "asc" ? "desc" : "asc"));
+    else {
+      setSortBy(c);
+      setOrder("desc");
+    }
+  };
+  const sorted = [...data].sort((a: any, b: any) => {
+    if (sortBy === "player")
+      return order === "desc"
+        ? String(b.player).localeCompare(a.player)
+        : String(a.player).localeCompare(b.player);
+    return order === "desc" ? b[sortBy] - a[sortBy] : a[sortBy] - b[sortBy];
+  });
+  const num = (v: any, d = 2) => (v == null ? "—" : Number(v).toFixed(d));
+  const signed = (v: number, d = 2) =>
+    v > 0 ? `+${v.toFixed(d)}` : v.toFixed(d);
+  const cols = [
+    { k: "power", label: "PWR", full: "Power score: blend of recency-weighted Game Score and win rate, z-scored across the roster (0 ≈ roster average)" },
+    { k: "prodScore", label: "PROD", full: "Recency-weighted, small-sample-shrunk Game Score (production)" },
+    { k: "winRate", label: "WIN%", full: "Win rate, Bayesian-shrunk toward .500 for small samples" },
+    { k: "games", label: "GP", full: "Games played" },
+  ];
+  return (
+    <TableCard title="Power Ranking" hint="PRODUCTION × WINS · RECENCY-WEIGHTED">
+      <Table size="sm" variant="unstyled">
+        <Thead>
+          <Tr>
+            <Th {...sortableThProps} onClick={() => handle("player")} textAlign="start">
+              #
+            </Th>
+            <HeadCell label="Player" full="Player" numeric={false} onClick={() => handle("player")} />
+            {cols.map((c) => (
+              <HeadCell key={c.k} label={c.label} full={c.full} onClick={() => handle(c.k)} />
+            ))}
+          </Tr>
+        </Thead>
+        <Tbody>
+          {sorted.map((r: any, i: number) => (
+            <Tr key={r.player} _hover={{ bg: "bg.hover" }}>
+              <Td sx={{ fontVariantNumeric: "tabular-nums" }} color="text.faint" fontWeight={700}>
+                {i + 1}
+              </Td>
+              <Td fontFamily="heading" fontWeight={800} whiteSpace="nowrap">
+                {r.player}
+              </Td>
+              <Td
+                {...numTd}
+                fontFamily="heading"
+                color={r.power >= 0 ? "accent.400" : "text.muted"}
+              >
+                {signed(r.power)}
+              </Td>
+              <Td {...numTd}>{num(r.prodScore, 1)}</Td>
+              <Td {...numTd}>{num(r.winRate * 100, 0)}%</Td>
+              <Td {...numTd}>{r.games}</Td>
+            </Tr>
+          ))}
+        </Tbody>
+      </Table>
+    </TableCard>
+  );
+};
+
 const Home = () => {
   const [tableData, setTableData] = useState([]);
+  const [powerData, setPowerData] = useState<any[]>([]);
   const [mode, setMode] = useState(false);
   const [series, setSeries] = useState<string>("all");
   const [seriesList, setSeriesList] = useState<{ series: number; games: number }[]>([]);
@@ -709,6 +780,22 @@ const Home = () => {
     };
 
     fetchPlayerData();
+  }, [mode, series]);
+
+  // Power ranking (recency-weighted GMSC blended with win rate).
+  useEffect(() => {
+    const fetchPower = async () => {
+      const seriesQ = mode && series !== "all" ? `&series=${series}` : "";
+      try {
+        const res = await axios.get(
+          `${apiUrl}/api/getPowerRankings?mode=${mode ? "4v4" : "2v2"}${seriesQ}`
+        );
+        setPowerData(res.data.error ? [] : res.data.data ?? []);
+      } catch {
+        setPowerData([]);
+      }
+    };
+    fetchPower();
   }, [mode, series]);
 
   const switchMode = () => {
@@ -818,6 +905,7 @@ const Home = () => {
             <Tab whiteSpace="nowrap">Per Game</Tab>
             <Tab whiteSpace="nowrap">Shot Mix</Tab>
             <Tab whiteSpace="nowrap">Advanced</Tab>
+            <Tab whiteSpace="nowrap">Power</Tab>
           </TabList>
           <TabPanels>
             <TabPanel px={0}>
@@ -834,6 +922,13 @@ const Home = () => {
             </TabPanel>
             <TabPanel px={0}>
               <AdvancedTable data={tableData} />
+            </TabPanel>
+            <TabPanel px={0}>
+              {powerData.length === 0 ? (
+                <EmptyCard>Not enough games logged for a power ranking.</EmptyCard>
+              ) : (
+                <PowerTable data={powerData} />
+              )}
             </TabPanel>
           </TabPanels>
         </Tabs>
